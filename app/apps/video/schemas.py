@@ -1,3 +1,4 @@
+import fal_client
 from enum import Enum
 from typing import Any, Literal
 from fastapi import UploadFile, File
@@ -14,11 +15,11 @@ class VideoStatus(str, Enum):
     error = "error"
 
     @classmethod
-    def from_fal(cls, status: str):
+    def from_fal(cls, status):
         return {
-            "IN_QUEUE": VideoStatus.in_queue,
-            "IN_PROGRESS": VideoStatus.in_progress,
-            "COMPLETED": VideoStatus.completed,
+          fal_client.Queued: VideoStatus.in_queue,
+          fal_client.InProgress: VideoStatus.in_progress,
+          fal_client.Completed: VideoStatus.completed,
         }.get(status, VideoStatus.error)
 
     @property
