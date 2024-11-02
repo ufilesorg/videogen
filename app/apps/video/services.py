@@ -5,7 +5,7 @@ import uuid
 import boto3
 import httpx
 import aiohttp
-
+import fal_client
 from datetime import datetime
 from httpx_socks import AsyncProxyTransport
 from apps.video.models import Video
@@ -52,14 +52,14 @@ async def get_fal_status(video: Video):
     headers = {
         "Authorization": f"Key {Settings.fal_key}",
     }
-
-    async with get_client() as client:
-        response = await client.get(url, headers=headers)
-        try:
-            result = response.json()
-            return VideoStatus.from_fal(result.get("status"))
-        except ValueError:
-            return VideoStatus.in_queue
+    try:
+        # status = await fal_client.status(f"fal-ai{video.engine.get_bot_url}", video.request_id, with_logs=True)
+        print(video.request_id)
+        print(status)
+        return VideoStatus.from_fal('IN_QUEUE')
+    except:
+        
+        return VideoStatus.error
     
     
 async def upload_image(image: UploadFile):
@@ -76,6 +76,11 @@ async def upload_image(image: UploadFile):
     return f"{Settings.aws_endpoint_url}/{Settings.aws_bucket_name}/{filename}"
     
 
+def on_queue_update(update):
+    if isinstance(update, fal_client.InProgress):
+        for log in update.logs:
+           print(log["message"])
+           
 @try_except_wrapper
 async def video_request(video: Video):
     url = video.engine.get_fal_url
@@ -90,7 +95,16 @@ async def video_request(video: Video):
         "ratio": "16:9",
         "duration": "5",
     }
-    async with get_client() as client:
-        response = await client.post(url, headers=headers, json=data)
-        video.request_id = response.json().get("request_id")
-        await video.save_report(f"Engine has been requested.")
+    handler = await  fal_client.subscribe_async(
+        f"fal-ai{video.engine.get_bot_url}",
+        arguments={
+            "prompt": "a cat",
+            "seed": 6252023,
+            "image_size": "landscape_4_3",
+            "num_images": 1
+        },
+        on_queue_update=on_queue_update,
+    )
+    print(handler)
+    video.request_id = handler.request_id
+    await video.save_report(f"Engine has been requested.")

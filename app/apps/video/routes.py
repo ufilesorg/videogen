@@ -32,6 +32,12 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
             status_code=201,
         )
         self.router.add_api_route(
+            "/create",
+            self.create_i,
+            methods=["POST"],
+            status_code=201,
+        )
+        self.router.add_api_route(
             "/{uid:uuid}/status",
             self.get_status,
             methods=["POST"],
@@ -56,6 +62,13 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
         self, request: fastapi.Request, file: fastapi.UploadFile=fastapi.File(...)
     ):
         return {'url': await upload_image(file)}
+
+
+    async def create_i(
+        self, request: fastapi.Request, request_id: str
+    ):
+        result = fal_client.result("fal-ai/flux/dev", request_id)
+        return {'url': result }
 
 
     async def get_status(

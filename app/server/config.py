@@ -27,6 +27,7 @@ class Settings(metaclass=Singleton):
     base_dir: Path = Path(__file__).resolve().parent.parent
     base_path: str = "/v1/apps/video"
     update_time: int = 5
+    page_max_limit: int = 100
 
     log_config = {
         "version": 1,
