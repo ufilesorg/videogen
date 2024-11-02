@@ -95,7 +95,7 @@ async def video_request(video: Video):
         "ratio": "16:9",
         "duration": "5",
     }
-    handler = await  fal_client.subscribe_async(
+    handler = await fal_client.submit_async(
         f"fal-ai{video.engine.get_bot_url}",
         arguments={
             "prompt": "a cat",
