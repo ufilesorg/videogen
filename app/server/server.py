@@ -36,7 +36,7 @@ app = fastapi.FastAPI(
         "url": "https://github.com/mahdikiani/FastAPILaunchpad/blob/main/LICENSE",
     },
     docs_url=f"{config.Settings.base_path}/docs",
-    openapi_url="/v1/apps/video/openapi.json",
+    openapi_url=f"{config.Settings.base_path}/openapi.json",
     lifespan=lifespan,
 )
 

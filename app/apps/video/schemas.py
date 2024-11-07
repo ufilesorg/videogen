@@ -1,10 +1,8 @@
-import fal_client
 from enum import Enum
-from typing import Any, Literal
-from fastapi import UploadFile, File
 
+import fal_client
 from fastapi_mongo_base.schemas import BaseEntitySchema
-from fastapi_mongo_base.tasks import TaskMixin, TaskStatusEnum
+from fastapi_mongo_base.tasks import TaskMixin
 from pydantic import BaseModel, field_validator
 
 
@@ -17,16 +15,14 @@ class VideoStatus(str, Enum):
     @classmethod
     def from_fal(cls, status):
         return {
-          fal_client.Queued: VideoStatus.in_queue,
-          fal_client.InProgress: VideoStatus.in_progress,
-          fal_client.Completed: VideoStatus.completed,
+            fal_client.Queued: VideoStatus.in_queue,
+            fal_client.InProgress: VideoStatus.in_progress,
+            fal_client.Completed: VideoStatus.completed,
         }.get(status, VideoStatus.error)
 
     @property
     def is_done(self):
-        return self in (
-            VideoStatus.completed,
-        )
+        return self in (VideoStatus.completed,)
 
 
 class VideoEngines(str, Enum):
@@ -35,9 +31,9 @@ class VideoEngines(str, Enum):
     flux = "flux"
     flux_dev = "flux_dev"
     fast_turbo_diffusion = "fast-turbo-diffusion"
-    kling_video = 'kling-video'
-    kling_video_pro = 'kling-video-pro'
-    
+    kling_video = "kling-video"
+    kling_video_pro = "kling-video-pro"
+
     @property
     def get_bot_url(self):
         return {
@@ -49,7 +45,7 @@ class VideoEngines(str, Enum):
             VideoEngines.kling_video: "/kling-video/v1/standard/image-to-video",
             VideoEngines.kling_video_pro: "/kling-video/v1/pro/image-to-video",
         }[self]
-        
+
     @property
     def get_bot_value(self):
         return {
@@ -67,16 +63,20 @@ class VideoEngines(str, Enum):
         return f"https://queue.fal.run/fal-ai{self.get_bot_url}/"
 
     def get_request_url(self, request_id: str | int):
-        return f"https://queue.fal.run/fal-ai/{self.get_bot_value}/requests/{request_id}"
-    
+        return (
+            f"https://queue.fal.run/fal-ai/{self.get_bot_value}/requests/{request_id}"
+        )
+
     @property
     def price(self):
         return 0.25 if self.value == self.runway else 0.5
 
+
 class VideoCreateSchema(BaseModel):
     prompt: str
-    image: str | None = ''
+    image: str | None = ""
     engine: VideoEngines = VideoEngines.fast_turbo_diffusion
+
 
 class VideoResponse(BaseModel):
     url: str
@@ -89,7 +89,7 @@ class VideoSchema(TaskMixin, BaseEntitySchema):
     prompt: str
     engine: VideoEngines = VideoEngines.fast_turbo_diffusion
     status: VideoStatus = VideoStatus.in_queue
-    image: str | None = ''
+    image: str | None = ""
     request_id: str | int | None = None
     results: VideoResponse | None = None
 

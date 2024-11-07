@@ -1,6 +1,3 @@
-import asyncio
-import logging
-
 from fastapi_mongo_base.models import BaseEntity
 from server.config import Settings
 
@@ -17,4 +14,5 @@ class Video(VideoSchema, BaseEntity):
 
     async def start_processing(self):
         from apps.video.services import video_request
+
         await video_request(self)
