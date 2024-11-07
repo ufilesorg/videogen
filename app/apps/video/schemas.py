@@ -28,9 +28,6 @@ class VideoStatus(str, Enum):
 class VideoEngines(str, Enum):
     runway = "runway"
     minimax = "minimax"
-    flux = "flux"
-    flux_dev = "flux_dev"
-    fast_turbo_diffusion = "fast-turbo-diffusion"
     kling_video = "kling-video"
     kling_video_pro = "kling-video-pro"
 
@@ -39,9 +36,6 @@ class VideoEngines(str, Enum):
         return {
             VideoEngines.runway: "/runway-gen3/turbo/image-to-video",
             VideoEngines.minimax: "/minimax-video/image-to-video",
-            VideoEngines.flux: "/flux/schnell",
-            VideoEngines.flux_dev: "/flux/dev",
-            VideoEngines.fast_turbo_diffusion: "/fast-turbo-diffusion",
             VideoEngines.kling_video: "/kling-video/v1/standard/image-to-video",
             VideoEngines.kling_video_pro: "/kling-video/v1/pro/image-to-video",
         }[self]
@@ -52,11 +46,17 @@ class VideoEngines(str, Enum):
             VideoEngines.runway: "runway-gen3",
             VideoEngines.minimax: "minimax-video",
             VideoEngines.kling_video: "kling-video",
-            VideoEngines.flux: "flux",
-            VideoEngines.flux_dev: "flux",
-            VideoEngines.fast_turbo_diffusion: "fast-turbo-diffusion",
             VideoEngines.kling_video_pro: "kling-video",
         }[self]
+
+    @property
+    def thumbnail_url(self):
+        return {
+            VideoEngines.runway: "https://runwayml.com/icon.png",
+            VideoEngines.minimax: "https://hailuoai.video/assets/img/side-nav-logo.png",
+            VideoEngines.kling_video: "https://www.klingvideo.ai/assets/imgs/kling/klingvedioai-logo.png",
+            VideoEngines.kling_video_pro: "https://www.klingvideo.ai/assets/imgs/kling/klingvedioai-logo.png",
+        }.get(self, "")
 
     @property
     def get_fal_url(self):
@@ -72,9 +72,19 @@ class VideoEngines(str, Enum):
         return 0.25 if self.value == self.runway else 0.5
 
 
+class VideoEnginesSchema(BaseModel):
+    engine: VideoEngines = VideoEngines.runway
+    thumbnail_url: str
+    price: float
+
+    @classmethod
+    def from_model(cls, model: VideoEngines):
+        return cls(engine=model, thumbnail_url=model.thumbnail_url, price=model.price)
+
+
 class VideoCreateSchema(BaseModel):
     prompt: str
-    image: str 
+    image: str
     engine: VideoEngines = VideoEngines.runway
 
 

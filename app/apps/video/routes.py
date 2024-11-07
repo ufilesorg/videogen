@@ -4,7 +4,12 @@ import fastapi
 from fastapi_mongo_base.routes import AbstractBaseRouter
 
 from apps.video.models import Video
-from apps.video.schemas import VideoCreateSchema, VideoSchema
+from apps.video.schemas import (
+    VideoCreateSchema,
+    VideoEngines,
+    VideoEnginesSchema,
+    VideoSchema,
+)
 from apps.video.services import get_fal_status, process_result
 
 
@@ -18,7 +23,9 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
             prefix="",
         )
 
-    # def config_routes(self, **kwargs):
+    def config_routes(self, **kwargs):
+        super().config_routes(**kwargs)
+
     #     self.router.add_api_route(
     #         "/create-item",
     #         self.create_item,
@@ -48,3 +55,9 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
 
 
 router = VideoRouter().router
+
+
+@router.get("/engines")
+async def engines():
+    engines = [VideoEnginesSchema.from_model(engine) for engine in VideoEngines]
+    return engines
