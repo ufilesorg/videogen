@@ -1,11 +1,12 @@
 from io import BytesIO
 
 import fal_client
-from apps.video.models import Video
-from apps.video.schemas import VideoResponse, VideoStatus
 from fastapi import UploadFile
 from fastapi_mongo_base._utils.basic import try_except_wrapper
 from PIL import Image
+
+from apps.video.models import Video
+from apps.video.schemas import VideoResponse, VideoStatus
 
 
 async def process_result(video: Video):

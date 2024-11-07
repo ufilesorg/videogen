@@ -4,10 +4,11 @@ from contextlib import asynccontextmanager
 
 import fastapi
 import pydantic
-from core import exceptions
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from json_advanced import dumps
+
+from core import exceptions
 
 from . import config, db, middlewares
 

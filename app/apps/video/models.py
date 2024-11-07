@@ -1,4 +1,5 @@
 from fastapi_mongo_base.models import BaseEntity
+
 from server.config import Settings
 
 from .schemas import VideoSchema

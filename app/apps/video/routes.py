@@ -1,10 +1,11 @@
 import uuid
 
 import fastapi
+from fastapi_mongo_base.routes import AbstractBaseRouter
+
 from apps.video.models import Video
 from apps.video.schemas import VideoCreateSchema, VideoSchema
-from apps.video.services import get_fal_status, process_result, upload_image
-from fastapi_mongo_base.routes import AbstractBaseRouter
+from apps.video.services import get_fal_status, process_result
 
 
 class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
@@ -31,7 +32,6 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
             methods=["POST"],
             status_code=200,
         )
-        
 
     async def create_item(self, request: fastapi.Request, data: VideoCreateSchema):
         item: Video = await super().create_item(request, data.model_dump())
