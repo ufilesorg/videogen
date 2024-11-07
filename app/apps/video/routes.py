@@ -18,20 +18,20 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
             prefix="",
         )
 
-    def config_routes(self, **kwargs):
-        self.router.add_api_route(
-            "/create-item",
-            self.create_item,
-            methods=["POST"],
-            response_model=self.create_response_schema,
-            status_code=201,
-        )
-        self.router.add_api_route(
-            "/{uid:uuid}/status",
-            self.get_status,
-            methods=["POST"],
-            status_code=200,
-        )
+    # def config_routes(self, **kwargs):
+    #     self.router.add_api_route(
+    #         "/create-item",
+    #         self.create_item,
+    #         methods=["POST"],
+    #         response_model=self.create_response_schema,
+    #         status_code=201,
+    #     )
+    #     self.router.add_api_route(
+    #         "/{uid:uuid}/status",
+    #         self.get_status,
+    #         methods=["POST"],
+    #         status_code=200,
+    #     )
 
     async def create_item(self, request: fastapi.Request, data: VideoCreateSchema):
         item: Video = await super().create_item(request, data.model_dump())

@@ -74,8 +74,8 @@ class VideoEngines(str, Enum):
 
 class VideoCreateSchema(BaseModel):
     prompt: str
-    image: str | None = ""
-    engine: VideoEngines = VideoEngines.fast_turbo_diffusion
+    image: str 
+    engine: VideoEngines = VideoEngines.runway
 
 
 class VideoResponse(BaseModel):
@@ -87,7 +87,7 @@ class VideoResponse(BaseModel):
 
 class VideoSchema(TaskMixin, BaseEntitySchema):
     prompt: str
-    engine: VideoEngines = VideoEngines.fast_turbo_diffusion
+    engine: VideoEngines = VideoEngines.runway
     status: VideoStatus = VideoStatus.in_queue
     image: str | None = ""
     request_id: str | int | None = None
