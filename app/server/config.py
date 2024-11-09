@@ -29,6 +29,11 @@ class Settings(metaclass=Singleton):
     update_time: int = 5
     page_max_limit: int = 100
 
+    JWT_CONFIG: str = os.getenv(
+        "USSO_JWT_CONFIG",
+        default='{"jwk_url": "https://usso.io/website/jwks.json","type": "RS256","header": {"type": "Cookie", "name": "usso_access_token"} }',
+    )
+
     log_config = {
         "version": 1,
         "handlers": {

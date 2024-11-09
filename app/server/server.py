@@ -8,6 +8,7 @@ from core import exceptions
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from json_advanced import dumps
+from usso.exceptions import USSOException
 
 from . import config, db, middlewares
 
@@ -51,6 +52,13 @@ async def base_http_exception_handler(
     )
 
 
+@app.exception_handler(USSOException)
+async def usso_exception_handler(request: fastapi.Request, exc: USSOException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.message, "error": exc.error},
+    )
+
 @app.exception_handler(pydantic.ValidationError)
 @app.exception_handler(fastapi.exceptions.ResponseValidationError)
 @app.exception_handler(fastapi.exceptions.RequestValidationError)
@@ -85,7 +93,7 @@ async def general_exception_handler(request: fastapi.Request, exc: Exception):
 
 
 origins = [
-    "http://localhost:3000",
+    "*",
 ]
 app.add_middleware(
     CORSMiddleware,
