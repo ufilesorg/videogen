@@ -1,20 +1,20 @@
 import uuid
 import fastapi
-from typing import Any
 
-from fastapi import BackgroundTasks
+from typing import Any
+from fastapi import BackgroundTasks, Request, UploadFile, File
+from usso.fastapi import jwt_access_security_None
 from fastapi_mongo_base.routes import AbstractBaseRouter
 
 from apps.video.models import Video
+from apps.video.services import upload_image, process_video_webhook
 from apps.video.schemas import (
-    VideoCreateSchema,
-    VideoStatusData,
     VideoSchema,
     VideoEngines,
     VideoWebhookData
+    VideoCreateSchema,
+    VideoEnginesSchema,
 )
-from usso.fastapi import jwt_access_security_None
-from apps.video.services import get_fal_status, process_result, upload_image, process_video_webhook
 
 
 class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
@@ -69,7 +69,7 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
         )
 
     async def create_item(
-        self, request: fastapi.Request, data:   VideoCreateSchema,
+        self, request: Request, data: VideoCreateSchema,
         background_tasks: BackgroundTasks,
     ):
         item: Video = await super().create_item(request, data.model_dump())
@@ -78,13 +78,13 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
 
 
     async def upload_image(
-        self, request: fastapi.Request, file: fastapi.UploadFile=fastapi.File(...)
+        self, request: Request, file: UploadFile=File(...)
     ):
         user_id = await self.get_user_id(request)
         return {'url': await upload_image(file, user_id=user_id)}
     
     async def webhook(
-        self, request: fastapi.Request, uid: uuid.UUID, data: VideoWebhookData
+        self, request: Request, uid: uuid.UUID, data: VideoWebhookData
     ):
         item: Video = await self.get_item(uid)
         if item.status == "cancelled":  
@@ -93,3 +93,9 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
         return {}
 
 router = VideoRouter().router
+
+
+@router.get("/engines")
+async def engines():
+    engines = [VideoEnginesSchema.from_model(engine) for engine in VideoEngines]
+    return engines

@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 
 import fastapi
 import pydantic
-from core import exceptions
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from json_advanced import dumps
 from usso.exceptions import USSOException
+
+from core import exceptions
 
 from . import config, db, middlewares
 
@@ -37,7 +38,7 @@ app = fastapi.FastAPI(
         "url": "https://github.com/mahdikiani/FastAPILaunchpad/blob/main/LICENSE",
     },
     docs_url=f"{config.Settings.base_path}/docs",
-    openapi_url="/v1/apps/video/openapi.json",
+    openapi_url=f"{config.Settings.base_path}/openapi.json",
     lifespan=lifespan,
 )
 

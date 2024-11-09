@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from fastapi_mongo_base.models import OwnedEntity
+
 from server.config import Settings
 
 from .schemas import VideoSchema
@@ -21,6 +22,7 @@ class Video(VideoSchema, OwnedEntity):
 
     async def start_processing(self):
         from apps.video.services import video_request
+
         await video_request(self)
 
     async def retry(self, message: str, max_retries: int = 5):
@@ -34,7 +36,6 @@ class Video(VideoSchema, OwnedEntity):
             )
             await self.save_and_emit()
             asyncio.create_task(self.start_processing())
-            logging.info(f"Retry {retry_count} {self.uid}")
             return retry_count + 1
 
         await self.fail(message)

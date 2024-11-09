@@ -1,13 +1,11 @@
-import fal_client
 from enum import Enum
-from typing import Any, Literal
-from fastapi import UploadFile, File
 
+from abc import ABC, abstractmethod
+from pydantic import BaseModel, field_validator, model_validator
 from fastapi_mongo_base.schemas import OwnedEntitySchema
 from fastapi_mongo_base.tasks import TaskMixin, TaskStatusEnum
-from pydantic import BaseModel, field_validator, model_validator
+
 from utils import ufiles, imagetools
-from abc import ABC, abstractmethod
 
 class Engines(ABC):
     application_name: str 
@@ -178,7 +176,7 @@ class VideoStatus(str, Enum):
             VideoStatus.error: TaskStatusEnum.error,
             VideoStatus.cancelled: TaskStatusEnum.completed,
         }[self]
-        
+
     @property
     def is_done(self):
         return self in (
@@ -186,6 +184,17 @@ class VideoStatus(str, Enum):
             VideoStatus.completed,
             VideoStatus.ok,
         )
+
+
+
+class VideoEnginesSchema(BaseModel):
+    engine: VideoEngines = VideoEngines.runway
+    thumbnail_url: str
+    price: float
+
+    @classmethod
+    def from_model(cls, model: VideoEngines):
+        return cls(engine=model, thumbnail_url=model.thumbnail_url, price=model.price)
 
 
 class VideoCreateSchema(BaseModel):
@@ -217,24 +226,6 @@ class VideoSchema(TaskMixin, OwnedEntitySchema):
     engine: VideoEngines
     status: VideoStatus = VideoStatus.draft
     results: VideoResponse | None = None
-
-
-class VideoStatusData(BaseModel):
-    request_id: str | int
-    percentage: int = 0
-
-    @field_validator("percentage", mode="before")
-    def validate_percentage(cls, value):
-        if value is None:
-            return -1
-        if isinstance(value, str):
-            return int(value.replace("%", ""))
-        if value < -1:
-            return -1
-        if value > 100:
-            return 100
-        return value
-
 
 class VideoWebhookPayload(BaseModel):
     video: dict | None = None

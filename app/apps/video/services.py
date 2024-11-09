@@ -1,33 +1,25 @@
-import json
-import logging
-import asyncio
 import re
+import json
 import uuid
-import boto3
-import httpx
 import aiohttp
 import fal_client
+
 from io import BytesIO
-from datetime import datetime
-from httpx_socks import AsyncProxyTransport
-from apps.video.models import Video
-from apps.video.schemas import (
-    VideoEngines,
-    VideoStatus,
-    VideoResponse,
-    VideoStatusData,
-    VideoWebhookData
-)
-from fastapi_mongo_base._utils.basic import try_except_wrapper
 from PIL import Image
 from fastapi import UploadFile
 from usso.async_session import AsyncUssoSession
-from botocore.client import Config
-from server.config import Settings
+from fastapi_mongo_base._utils.basic import try_except_wrapper
+
+from apps.video.models import Video
 from utils import ufiles, imagetools
+from apps.video.schemas import (
+    VideoStatus,
+    VideoResponse,
+    VideoWebhookData
+)
 
 def sanitize_uploadfilename(image_name: str):
-    return str(uuid.uuid4())+image_name  # Limit to 100 characters
+    return str(uuid.uuid4()) + image_name
 
 def sanitize_filename(prompt: str):
     # Remove invalid characters and replace spaces with underscores

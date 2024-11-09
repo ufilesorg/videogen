@@ -19,13 +19,13 @@ class Settings(metaclass=Singleton):
     aws_endpoint_url: str = os.getenv("AWS_ENDPOINT_URL")
     aws_access_key: str = os.getenv("AWS_ACCESS_KEY")
     aws_bucket_name: str = os.getenv("AWS_BUCKET_NAME")
-    aws_secret_key: str =os.getenv("AWS_SECRET_KEY")
+    aws_secret_key: str = os.getenv("AWS_SECRET_KEY")
     fal_key: str = os.getenv("FAL_KEY")
     root_url: str = os.getenv("DOMAIN", default="http://localhost:8000")
     mongo_uri: str = os.getenv("MONGO_URI", default="mongodb://127.0.0.1:27017/")
     project_name: str = os.getenv("PROJECT_NAME", default="Imagine")
     base_dir: Path = Path(__file__).resolve().parent.parent
-    base_path: str = "/v1/apps/video"
+    base_path: str = "/v1/apps/videogen"
     update_time: int = 5
     page_max_limit: int = 100
 
