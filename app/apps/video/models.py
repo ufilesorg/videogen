@@ -14,10 +14,10 @@ class Video(VideoSchema, OwnedEntity):
 
     @property
     def item_url(self):
-        return f"{Settings.root_url}/v1/apps/video/{self.uid}"
+        return f"{Settings.root_url}{Settings.base_path}/{self.uid}"
 
     @property
-    def webhook_url(self):
+    def service_webhook_url(self):
         return f"{self.item_url}/webhook"
 
     async def start_processing(self):
@@ -46,3 +46,9 @@ class Video(VideoSchema, OwnedEntity):
         self.status = "error"
         await self.save_report(f"Image failed after retries, {message}", emit=False)
         await self.save_and_emit()
+
+    @classmethod
+    async def get_item(cls, uid, user_id, *args, **kwargs) -> "Video":
+        return await super(OwnedEntity, cls).get_item(
+            uid, user_id=user_id, *args, **kwargs
+        )

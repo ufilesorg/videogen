@@ -2,6 +2,7 @@ import re
 import json
 import uuid
 import aiohttp
+import requests
 import fal_client
 
 from io import BytesIO
@@ -43,13 +44,8 @@ async def process_result(video: Video, file_res: str):
     )
     await video.save()
 
-async def get_fal_status(video: Video):
-    status = await fal_client.status_async(video.engine.application_name, video.request_id, with_logs=True)
-    return VideoStatus.from_fal(type(status))
-    
-    
 async def upload_ufile(
-    bytes: BytesIO,
+    file_bytes: BytesIO,
     user_id: uuid.UUID, 
     meta_data: dict | None = None,
     file_upload_dir: str = "imaginations",
@@ -60,8 +56,8 @@ async def upload_ufile(
     ) as client:
         return await ufiles.AsyncUFiles().upload_bytes_session(
             client,
-            bytes,
-            filename=f"{file_upload_dir}/{bytes.name}",
+            file_bytes,
+            filename=f"{file_upload_dir}/{file_bytes.name}",
             public_permission=json.dumps({"permission": ufiles.PermissionEnum.READ}),
             user_id=str(user_id),
             meta_data=meta_data,
@@ -93,12 +89,12 @@ async def video_request(video: Video):
     video.prompt = prompt
     data = {
         "prompt": video.prompt,
-        # "image_url": video.image_url,
+        "image_url": video.image_url,
         **(video.meta_data or {})
     }
     handler = await fal_client.submit_async(
         video.engine.application_name,
-        webhook_url=video.webhook_url,
+        webhook_url=video.service_webhook_url,
         arguments=data,
     )
     await video.save_report(f"{video.engine} has been requested.")
@@ -109,22 +105,24 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
         return
 
     if data.status.is_done:
-        result_url = data.payload.video.get('url', '')
-        print(video, )
-        print(video.user_id, )
-        # async with aiohttp.ClientSession() as session:
-        #     async with session.get(result_url) as response:
-        #         # Ensure the request was successful
-        #         if response.status == 200:
-        #             video_bytes = await response.read()
-        #             file = upload_file(
-        #                 image_bytes,
-        #                 user_id=str(video.),
-        #                 file_upload_dir='imaginations'
-        #             )
-        #         else:
-        #             print(f"Failed to fetch video. Status code: {response.status}")
-        await process_result(video, result_url)
+        result_url = data.payload['video'].get('url', '')
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(result_url) as response:
+                    if response.status == 200:
+                        video_bytes = BytesIO(await response.read())
+                        video_bytes.seek(0)
+                        video_bytes.name = f"video{str(uuid.uuid4())}.mp4"
+                        file = await upload_ufile(
+                            video_bytes,
+                            user_id=str(video.user_id),
+                            file_upload_dir='imaginations'
+                        )
+                        await process_result(video, file.url)
+                    else:
+                        await process_result(video, result_url)
+            except Exception:
+                await process_result(video, result_url)
     video.task_progress = 100
     video.status = VideoStatus.completed
 
@@ -133,5 +131,8 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
         if data.status == "completed"
         else f"Fal update. {video.status}"
     )
+
+    if video.webhook_url:
+        requests.post(video.webhook_url, data=video.json(), headers={'Content-Type': 'application/json'})
 
     await video.save_report(report)

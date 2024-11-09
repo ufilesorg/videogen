@@ -3,7 +3,7 @@ import fastapi
 
 from typing import Any
 from fastapi import BackgroundTasks, Request, UploadFile, File
-from usso.fastapi import jwt_access_security_None
+from usso.fastapi import jwt_access_security
 from fastapi_mongo_base.routes import AbstractBaseRouter
 
 from apps.video.models import Video
@@ -11,17 +11,16 @@ from apps.video.services import upload_image, process_video_webhook
 from apps.video.schemas import (
     VideoSchema,
     VideoEngines,
-    VideoWebhookData
+    VideoWebhookData,
     VideoCreateSchema,
     VideoEnginesSchema,
 )
-
 
 class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
     def __init__(self):
         super().__init__(
             model=Video,
-            user_dependency=jwt_access_security_None,
+            user_dependency=jwt_access_security,
             schema=VideoSchema,
             tags=["Video"],
             prefix="",
@@ -86,7 +85,7 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
     async def webhook(
         self, request: Request, uid: uuid.UUID, data: VideoWebhookData
     ):
-        item: Video = await self.get_item(uid)
+        item: Video = await self.get_item(uid, user_id=None)
         if item.status == "cancelled":  
             return {"message": "Video has been cancelled."}
         await process_video_webhook(item, data)

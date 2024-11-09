@@ -1,5 +1,5 @@
 from enum import Enum
-
+from typing import Any
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, field_validator, model_validator
 from fastapi_mongo_base.schemas import OwnedEntitySchema
@@ -133,8 +133,6 @@ class VideoEngines(str, Enum):
     def validate(self, meta_data):
         return self.instance(meta_data).validate()
     
-
-
 class VideoStatus(str, Enum):
     none = "none"
     draft = "draft"
@@ -145,7 +143,8 @@ class VideoStatus(str, Enum):
     processing = "processing"
     done = "done"
     completed = "completed"
-    error = "error"
+    error = "ERROR"
+    errorr = "error"
     ok = "OK"
     cancelled = "cancelled"
 
@@ -157,6 +156,7 @@ class VideoStatus(str, Enum):
             "waiting": VideoStatus.waiting,
             "running": VideoStatus.processing,
             "completed": VideoStatus.completed,
+            "ERROR": VideoStatus.error,
             "error": VideoStatus.error,
         }.get(status, VideoStatus.error)  
 
@@ -185,8 +185,6 @@ class VideoStatus(str, Enum):
             VideoStatus.ok,
         )
 
-
-
 class VideoEnginesSchema(BaseModel):
     engine: VideoEngines = VideoEngines.runway
     thumbnail_url: str
@@ -196,14 +194,13 @@ class VideoEnginesSchema(BaseModel):
     def from_model(cls, model: VideoEngines):
         return cls(engine=model, thumbnail_url=model.thumbnail_url, price=model.price)
 
-
 class VideoCreateSchema(BaseModel):
-    prompt: str | None = None
-    image_url: str = ''
+    prompt: str
+    image_url: str
     meta_data: dict[str, Any] | None = None
     engine: VideoEngines
+    webhook_url: str | None = None
     
-    # Validator for 'engine' field
     @model_validator(mode='after')
     def validate_engine(cls, values):
         meta_data = values.meta_data or {}
@@ -219,9 +216,9 @@ class VideoResponse(BaseModel):
     height: int
     duration: int
 
-
 class VideoSchema(TaskMixin, OwnedEntitySchema):
-    prompt: str | None = None
+    prompt: str = None
+    webhook_url: str | None = None
     image_url: str | None = None
     engine: VideoEngines
     status: VideoStatus = VideoStatus.draft
