@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 
 class Engines(ABC):
     application_name: str 
+    thumbnail_url: str 
     
     def __init__(self, meta_data):
         self.meta_data = meta_data
@@ -26,6 +27,7 @@ class Engines(ABC):
     
 class RunwayEngine(Engines):
     application_name = "fal-ai/runway-gen3/turbo/image-to-video"
+    thumbnail_url = "https://runwayml.com/icon.png"
     
     @property
     def price(self):
@@ -47,6 +49,7 @@ class RunwayEngine(Engines):
     
 class HailuoEngine(Engines):
     application_name = "fal-ai/minimax-video/image-to-video"
+    thumbnail_url = "https://hailuoai.video/assets/img/side-nav-logo.png"
     
     @property
     def price(self):
@@ -63,6 +66,7 @@ class HailuoEngine(Engines):
        
 class KlingVideoEngine(Engines):
     application_name = "fal-ai/kling-video/v1/standard/image-to-video"
+    thumbnail_url = "https://www.klingvideo.ai/assets/imgs/kling/klingvedioai-logo.png"
     
     @property
     def price(self):
@@ -83,6 +87,7 @@ class KlingVideoEngine(Engines):
     
 class KlingVideoProEngine(Engines):
     application_name = "fal-ai/kling-video/v1/pro/image-to-video"
+    thumbnail_url = "https://www.klingvideo.ai/assets/imgs/kling/klingvedioai-logo.png"
     
     @property
     def price(self):
@@ -101,29 +106,17 @@ class KlingVideoProEngine(Engines):
             message = None
         return duration_valid and aspect_ratio_valid, message
     
-class FluxEngine(Engines):
-    application_name = "fal-ai/flux/schnell"
-    
-    @property
-    def price(self):
-        return 0.22
-
-    def validate(self):
-        return True, None
-    
 class VideoEngines(str, Enum):
     runway = "runway"
     hailuo = "hailuo"
     kling_video = 'kling-video'
     kling_video_pro = 'kling-video-pro'
-    flux = "flux"
     
     def instance(self, meta_data):
         return ({
             VideoEngines.runway: RunwayEngine,
             VideoEngines.hailuo: HailuoEngine,
             VideoEngines.kling_video: KlingVideoEngine,
-            VideoEngines.flux: FluxEngine,
             VideoEngines.kling_video_pro: KlingVideoProEngine,
         }[self])(meta_data)
 
@@ -134,6 +127,10 @@ class VideoEngines(str, Enum):
     @property
     def application_name(self):
         return self.instance({}).application_name
+
+    @property
+    def thumbnail_url(self):
+        return self.instance({}).thumbnail_url
 
     def validate(self, meta_data):
         return self.instance(meta_data).validate()
