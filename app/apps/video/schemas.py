@@ -1,3 +1,5 @@
+import fal_client
+
 from enum import Enum
 from typing import Any
 from abc import ABC, abstractmethod
@@ -160,6 +162,24 @@ class VideoStatus(str, Enum):
             "error": VideoStatus.error,
         }.get(status, VideoStatus.error)  
 
+    @classmethod
+    def from_fal_status(cls, status):
+        return {
+            fal_client.Queued: VideoStatus.queue,
+            fal_client.InProgress: VideoStatus.processing,
+            fal_client.Completed: VideoStatus.completed,
+        }.get(status, VideoStatus.error)
+        
+    @property
+    def done_statuses(self):
+        return [
+            VideoStatus.done,
+            VideoStatus.completed,
+            VideoStatus.ok,
+            VideoStatus.cancelled,
+            VideoStatus.error,
+        ]
+
     @property
     def task_status(self):
         return {
@@ -178,12 +198,16 @@ class VideoStatus(str, Enum):
         }[self]
 
     @property
-    def is_done(self):
+    def is_success(self):
         return self in (
             VideoStatus.done,
             VideoStatus.completed,
             VideoStatus.ok,
         )
+
+    @property
+    def is_done(self):
+        return self in self.done_statuses
 
 class VideoEnginesSchema(BaseModel):
     engine: VideoEngines = VideoEngines.runway
@@ -219,8 +243,10 @@ class VideoResponse(BaseModel):
 class VideoSchema(TaskMixin, OwnedEntitySchema):
     prompt: str = None
     webhook_url: str | None = None
+    request_id: str | None = None
     image_url: str | None = None
     engine: VideoEngines
+    meta_data: dict[str, Any] | None = None
     status: VideoStatus = VideoStatus.draft
     results: VideoResponse | None = None
 
@@ -228,9 +254,7 @@ class VideoWebhookPayload(BaseModel):
     video: dict | None = None
     
 class VideoWebhookData(BaseModel):
-    request_id: str
-    gateway_request_id: str
-    payload: VideoWebhookPayload
+    payload: VideoWebhookPayload | None = None
     status: VideoStatus
     error: Any | None = None
     

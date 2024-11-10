@@ -1,6 +1,7 @@
 import re
 import json
 import uuid
+import logging
 import aiohttp
 import requests
 import fal_client
@@ -8,6 +9,7 @@ import fal_client
 from io import BytesIO
 from PIL import Image
 from fastapi import UploadFile
+from datetime import datetime, timedelta
 from usso.async_session import AsyncUssoSession
 from fastapi_mongo_base._utils.basic import try_except_wrapper
 
@@ -16,7 +18,8 @@ from utils import ufiles, imagetools
 from apps.video.schemas import (
     VideoStatus,
     VideoResponse,
-    VideoWebhookData
+    VideoWebhookData,
+    VideoWebhookPayload
 )
 
 def sanitize_uploadfilename(image_name: str):
@@ -94,18 +97,35 @@ async def video_request(video: Video):
     }
     handler = await fal_client.submit_async(
         video.engine.application_name,
-        webhook_url=video.service_webhook_url,
+        # webhook_url=video.service_webhook_url,
         arguments=data,
     )
+    video.request_id = handler.request_id
     await video.save_report(f"{video.engine} has been requested.")
+
+async def get_fal_status(video: Video):
+    logging.info(f'Check Video status with uid: {video.uid}')
+    # Get and convert fal status to VideoStatus
+    status = await fal_client.status_async(video.engine.application_name, video.request_id, with_logs=True)
+    video.status = VideoStatus.from_fal_status(type(status))
+    # Check video status
+    if video.status.is_done:
+        payload: VideoWebhookPayload | None = None
+        # Getting the video payload if the status was successful
+        if video.status.is_success:
+            results = await fal_client.result_async(video.engine.application_name, video.request_id)
+            payload = VideoWebhookPayload(video=results['video'])
+        # Delivery of the results to the web process
+        await process_video_webhook(video, VideoWebhookData(status=video.status, payload=payload))
+    await video.save()  
 
 async def process_video_webhook(video: Video, data: VideoWebhookData):
     if data.status == VideoStatus.error:
         await video.retry(data.error)
         return
 
-    if data.status.is_done:
-        result_url = data.payload['video'].get('url', '')
+    if data.status.is_success:
+        result_url = data.payload.video.get('url', '')
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(result_url) as response:
@@ -121,7 +141,8 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
                         await process_result(video, file.url)
                     else:
                         await process_result(video, result_url)
-            except Exception:
+            except Exception as e:
+                print(e)
                 await process_result(video, result_url)
     video.task_progress = 100
     video.status = VideoStatus.completed

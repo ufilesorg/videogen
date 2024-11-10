@@ -26,7 +26,7 @@ class Settings(metaclass=Singleton):
     project_name: str = os.getenv("PROJECT_NAME", default="Imagine")
     base_dir: Path = Path(__file__).resolve().parent.parent
     base_path: str = "/v1/apps/videogen"
-    update_time: int = 5
+    update_time: int = 180
     page_max_limit: int = 100
 
     JWT_CONFIG: str = os.getenv(

@@ -1,18 +1,20 @@
 import json
 import logging
-from contextlib import asynccontextmanager
-
 import fastapi
 import pydantic
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from server.config import Settings
+from contextlib import asynccontextmanager
 from json_advanced import dumps
 from usso.exceptions import USSOException
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from core import exceptions
+from apps.video.worker import update_video
 
 from . import config, db, middlewares
-
 
 @asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):  # type: ignore
@@ -20,8 +22,13 @@ async def lifespan(app: fastapi.FastAPI):  # type: ignore
     config.Settings().config_logger()
     await db.init_db()
 
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(update_video, "interval", seconds=Settings.update_time)
+
+    scheduler.start()
     logging.info("Startup complete")
     yield
+    scheduler.shutdown()
     logging.info("Shutdown complete")
 
 
@@ -41,7 +48,6 @@ app = fastapi.FastAPI(
     openapi_url=f"{config.Settings.base_path}/openapi.json",
     lifespan=lifespan,
 )
-
 
 @app.exception_handler(exceptions.BaseHTTPException)
 async def base_http_exception_handler(
