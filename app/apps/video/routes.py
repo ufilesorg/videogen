@@ -1,20 +1,18 @@
 import uuid
-import fastapi
-
-from typing import Any
-from fastapi import BackgroundTasks, Request, UploadFile, File
-from usso.fastapi import jwt_access_security
-from fastapi_mongo_base.routes import AbstractBaseRouter
 
 from apps.video.models import Video
-from apps.video.services import upload_image, process_video_webhook
 from apps.video.schemas import (
-    VideoSchema,
-    VideoEngines,
-    VideoWebhookData,
     VideoCreateSchema,
+    VideoEngines,
     VideoEnginesSchema,
+    VideoSchema,
+    VideoWebhookData,
 )
+from apps.video.services import process_video_webhook, upload_image
+from fastapi import BackgroundTasks, File, Request, UploadFile
+from fastapi_mongo_base.routes import AbstractBaseRouter
+from usso.fastapi import jwt_access_security
+
 
 class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
     def __init__(self):
@@ -68,28 +66,26 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
         )
 
     async def create_item(
-        self, request: Request, data: VideoCreateSchema,
+        self,
+        request: Request,
+        data: VideoCreateSchema,
         background_tasks: BackgroundTasks,
     ):
         item: Video = await super().create_item(request, data.model_dump())
         background_tasks.add_task(item.start_processing)
         return item
 
-
-    async def upload_image(
-        self, request: Request, file: UploadFile=File(...)
-    ):
+    async def upload_image(self, request: Request, file: UploadFile = File(...)):
         user_id = await self.get_user_id(request)
-        return {'url': await upload_image(file, user_id=user_id)}
-    
-    async def webhook(
-        self, request: Request, uid: uuid.UUID, data: VideoWebhookData
-    ):
+        return {"url": await upload_image(file, user_id=user_id)}
+
+    async def webhook(self, request: Request, uid: uuid.UUID, data: VideoWebhookData):
         item: Video = await self.get_item(uid, user_id=None)
-        if item.status == "cancelled":  
+        if item.status == "cancelled":
             return {"message": "Video has been cancelled."}
         await process_video_webhook(item, data)
         return {}
+
 
 router = VideoRouter().router
 

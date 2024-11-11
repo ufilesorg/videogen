@@ -23,7 +23,7 @@ async def metis_chat(messages: dict, **kwargs):
     response = await metis_client.send_message(session, prompt)
     await metis_client.delete_session(session)
     resp_text = backtick_formatter(response.content)
-    return resp_text    
+    return resp_text
 
 
 async def answer_messages(messages: dict, **kwargs):

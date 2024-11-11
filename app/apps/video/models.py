@@ -1,8 +1,6 @@
 import asyncio
-import logging
 
 from fastapi_mongo_base.models import OwnedEntity
-
 from server.config import Settings
 
 from .schemas import VideoSchema

@@ -1,29 +1,29 @@
-import re
 import json
-import uuid
 import logging
-import aiohttp
-import requests
-import fal_client
-
+import re
+import uuid
 from io import BytesIO
-from PIL import Image
-from fastapi import UploadFile
-from datetime import datetime, timedelta
-from usso.async_session import AsyncUssoSession
-from fastapi_mongo_base._utils.basic import try_except_wrapper
 
+import aiohttp
+import fal_client
+import requests
 from apps.video.models import Video
-from utils import ufiles, imagetools
 from apps.video.schemas import (
-    VideoStatus,
     VideoResponse,
+    VideoStatus,
     VideoWebhookData,
-    VideoWebhookPayload
+    VideoWebhookPayload,
 )
+from fastapi import UploadFile
+from fastapi_mongo_base._utils.basic import try_except_wrapper
+from PIL import Image
+from usso.async_session import AsyncUssoSession
+from utils import imagetools, ufiles
+
 
 def sanitize_uploadfilename(image_name: str):
     return str(uuid.uuid4()) + image_name
+
 
 def sanitize_filename(prompt: str):
     # Remove invalid characters and replace spaces with underscores
@@ -38,6 +38,7 @@ def sanitize_filename(prompt: str):
     sanitized = sanitized.replace(" ", "_")  # Replace spaces with underscores
     return sanitized[:position]  # Limit to 100 characters
 
+
 async def process_result(video: Video, file_res: str):
     video.results = VideoResponse(
         url=file_res,
@@ -47,9 +48,10 @@ async def process_result(video: Video, file_res: str):
     )
     await video.save()
 
+
 async def upload_ufile(
     file_bytes: BytesIO,
-    user_id: uuid.UUID, 
+    user_id: uuid.UUID,
     meta_data: dict | None = None,
     file_upload_dir: str = "imaginations",
 ):
@@ -65,26 +67,27 @@ async def upload_ufile(
             user_id=str(user_id),
             meta_data=meta_data,
         )
-    
+
+
 async def upload_image(image: UploadFile, user_id):
     image_data = await image.read()
     image_stream = BytesIO(image_data)
     pil_image = Image.open(image_stream)
     image_name = sanitize_uploadfilename(image.filename)
-    
+
     image_bytes = imagetools.convert_to_webp_bytes(pil_image)
     image_bytes.name = f"{image_name}.webp"
     uploaded_image = await upload_ufile(
-        image_bytes,
-        user_id=str(user_id),
-        file_upload_dir='imaginations'
+        image_bytes, user_id=str(user_id), file_upload_dir="imaginations"
     )
-    
+
     return uploaded_image.url
+
 
 async def create_prompt(video: Video, enhance: bool = False):
 
     return video.prompt
+
 
 @try_except_wrapper
 async def video_request(video: Video):
@@ -93,7 +96,7 @@ async def video_request(video: Video):
     data = {
         "prompt": video.prompt,
         "image_url": video.image_url,
-        **(video.meta_data or {})
+        **(video.meta_data or {}),
     }
     handler = await fal_client.submit_async(
         video.engine.application_name,
@@ -103,21 +106,29 @@ async def video_request(video: Video):
     video.request_id = handler.request_id
     await video.save_report(f"{video.engine} has been requested.")
 
+
 async def get_fal_status(video: Video):
-    logging.info(f'Check Video status with uid: {video.uid}')
+    logging.info(f"Check Video status with uid: {video.uid}")
     # Get and convert fal status to VideoStatus
-    status = await fal_client.status_async(video.engine.application_name, video.request_id, with_logs=True)
+    status = await fal_client.status_async(
+        video.engine.application_name, video.request_id, with_logs=True
+    )
     video.status = VideoStatus.from_fal_status(type(status))
     # Check video status
     if video.status.is_done:
         payload: VideoWebhookPayload | None = None
         # Getting the video payload if the status was successful
         if video.status.is_success:
-            results = await fal_client.result_async(video.engine.application_name, video.request_id)
-            payload = VideoWebhookPayload(video=results['video'])
+            results = await fal_client.result_async(
+                video.engine.application_name, video.request_id
+            )
+            payload = VideoWebhookPayload(video=results["video"])
         # Delivery of the results to the web process
-        await process_video_webhook(video, VideoWebhookData(status=video.status, payload=payload))
-    await video.save()  
+        await process_video_webhook(
+            video, VideoWebhookData(status=video.status, payload=payload)
+        )
+    await video.save()
+
 
 async def process_video_webhook(video: Video, data: VideoWebhookData):
     if data.status == VideoStatus.error:
@@ -125,7 +136,7 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
         return
 
     if data.status.is_success:
-        result_url = data.payload.video.get('url', '')
+        result_url = data.payload.video.get("url", "")
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(result_url) as response:
@@ -136,7 +147,7 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
                         file = await upload_ufile(
                             video_bytes,
                             user_id=str(video.user_id),
-                            file_upload_dir='imaginations'
+                            file_upload_dir="imaginations",
                         )
                         await process_result(video, file.url)
                     else:
@@ -154,6 +165,10 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
     )
 
     if video.webhook_url:
-        requests.post(video.webhook_url, data=video.json(), headers={'Content-Type': 'application/json'})
+        requests.post(
+            video.webhook_url,
+            data=video.json(),
+            headers={"Content-Type": "application/json"},
+        )
 
     await video.save_report(report)

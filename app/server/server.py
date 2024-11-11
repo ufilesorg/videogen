@@ -1,20 +1,20 @@
 import json
 import logging
+from contextlib import asynccontextmanager
+
 import fastapi
 import pydantic
-
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from server.config import Settings
-from contextlib import asynccontextmanager
-from json_advanced import dumps
-from usso.exceptions import USSOException
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-
-from core import exceptions
 from apps.video.worker import update_video
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from core import exceptions
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from json_advanced import dumps
+from server.config import Settings
+from usso.exceptions import USSOException
 
 from . import config, db, middlewares
+
 
 @asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):  # type: ignore
@@ -49,6 +49,7 @@ app = fastapi.FastAPI(
     lifespan=lifespan,
 )
 
+
 @app.exception_handler(exceptions.BaseHTTPException)
 async def base_http_exception_handler(
     request: fastapi.Request, exc: exceptions.BaseHTTPException
@@ -65,6 +66,7 @@ async def usso_exception_handler(request: fastapi.Request, exc: USSOException):
         status_code=exc.status_code,
         content={"message": exc.message, "error": exc.error},
     )
+
 
 @app.exception_handler(pydantic.ValidationError)
 @app.exception_handler(fastapi.exceptions.ResponseValidationError)
