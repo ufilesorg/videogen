@@ -2,11 +2,15 @@ import json
 import logging
 import re
 import uuid
-from io import BytesIO
-
 import aiohttp
 import fal_client
 import requests
+
+from io import BytesIO
+from usso.async_session import AsyncUssoSession
+from fastapi_mongo_base._utils.basic import try_except_wrapper
+
+from utils import ufiles
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoResponse,
@@ -14,16 +18,6 @@ from apps.video.schemas import (
     VideoWebhookData,
     VideoWebhookPayload,
 )
-from fastapi import UploadFile
-from fastapi_mongo_base._utils.basic import try_except_wrapper
-from PIL import Image
-from usso.async_session import AsyncUssoSession
-from utils import imagetools, ufiles
-
-
-def sanitize_uploadfilename(image_name: str):
-    return str(uuid.uuid4()) + image_name
-
 
 def sanitize_filename(prompt: str):
     # Remove invalid characters and replace spaces with underscores
@@ -69,21 +63,6 @@ async def upload_ufile(
         )
 
 
-async def upload_image(image: UploadFile, user_id):
-    image_data = await image.read()
-    image_stream = BytesIO(image_data)
-    pil_image = Image.open(image_stream)
-    image_name = sanitize_uploadfilename(image.filename)
-
-    image_bytes = imagetools.convert_to_webp_bytes(pil_image)
-    image_bytes.name = f"{image_name}.webp"
-    uploaded_image = await upload_ufile(
-        image_bytes, user_id=str(user_id), file_upload_dir="imaginations"
-    )
-
-    return uploaded_image.url
-
-
 async def create_prompt(video: Video, enhance: bool = False):
 
     return video.prompt
@@ -100,7 +79,7 @@ async def video_request(video: Video):
     }
     handler = await fal_client.submit_async(
         video.engine.application_name,
-        # webhook_url=video.service_webhook_url,
+        webhook_url=video.service_webhook_url,
         arguments=data,
     )
     video.request_id = handler.request_id

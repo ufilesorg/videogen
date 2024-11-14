@@ -12,7 +12,7 @@ class Engines(ABC):
     application_name: str
     thumbnail_url: str
 
-    def __init__(self, meta_data):
+    def __init__(self, meta_data = {}):
         self.meta_data = meta_data
 
     @property
@@ -31,8 +31,7 @@ class RunwayEngine(Engines):
 
     @property
     def price(self):
-        duration = self.meta_data.get("duration", 5)
-        return 0.25 if duration == 5 else 0.5
+        return 0.25
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -72,7 +71,7 @@ class KlingVideoEngine(Engines):
 
     @property
     def price(self):
-        return 0.03 * self.meta_data.get("duration", 5)
+        return 0.03
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -94,7 +93,7 @@ class KlingVideoProEngine(Engines):
 
     @property
     def price(self):
-        return 0.125 * self.meta_data.get("duration", 5)
+        return 0.125
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -116,7 +115,7 @@ class VideoEngines(str, Enum):
     kling_video = "kling-video"
     kling_video_pro = "kling-video-pro"
 
-    def instance(self, meta_data):
+    def instance(self, meta_data = {}):
         return (
             {
                 VideoEngines.runway: RunwayEngine,
@@ -127,16 +126,16 @@ class VideoEngines(str, Enum):
         )(meta_data)
 
     @property
-    def price(self, meta_data):
-        return self.instance(meta_data).price
+    def price(self):
+        return self.instance().price
 
     @property
     def application_name(self):
-        return self.instance({}).application_name
+        return self.instance().application_name
 
     @property
     def thumbnail_url(self):
-        return self.instance({}).thumbnail_url
+        return self.instance().thumbnail_url
 
     def validate(self, meta_data):
         return self.instance(meta_data).validate()

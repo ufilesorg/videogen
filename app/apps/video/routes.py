@@ -1,5 +1,8 @@
 import uuid
 
+from fastapi import BackgroundTasks, File, Request, UploadFile
+from fastapi_mongo_base.routes import AbstractBaseRouter
+from usso.fastapi import jwt_access_security
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoCreateSchema,
@@ -52,12 +55,6 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
             methods=["DELETE"],
             response_model=self.delete_response_schema,
         )
-        # self.router.add_api_route(
-        #     "/upload-image",
-        #     self.upload_image,
-        #     methods=["POST"],
-        #     status_code=200,
-        # )
         self.router.add_api_route(
             "/{uid:uuid}/webhook",
             self.webhook,
@@ -74,10 +71,6 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
         item: Video = await super().create_item(request, data.model_dump())
         background_tasks.add_task(item.start_processing)
         return item
-
-    # async def upload_image(self, request: Request, file: UploadFile = File(...)):
-    #     user_id = await self.get_user_id(request)
-    #     return {"url": await upload_image(file, user_id=user_id)}
 
     async def webhook(self, request: Request, uid: uuid.UUID, data: VideoWebhookData):
         item: Video = await self.get_item(uid, user_id=None)
