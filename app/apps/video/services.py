@@ -1,12 +1,14 @@
 import json
-import logging
 import re
 import uuid
 from io import BytesIO
 
 import aiohttp
 import fal_client
-import requests
+from fastapi_mongo_base._utils.basic import try_except_wrapper
+from fastapi_mongo_base.tasks import TaskStatusEnum
+from usso.async_session import AsyncUssoSession
+
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoResponse,
@@ -14,8 +16,6 @@ from apps.video.schemas import (
     VideoWebhookData,
     VideoWebhookPayload,
 )
-from fastapi_mongo_base._utils.basic import try_except_wrapper
-from usso.async_session import AsyncUssoSession
 from utils import ufiles
 
 
@@ -79,20 +79,21 @@ async def video_request(video: Video):
     }
     handler = await fal_client.submit_async(
         video.engine.application_name,
-        webhook_url=video.service_webhook_url,
+        webhook_url=video.item_webhook_url,
         arguments=data,
     )
     video.request_id = handler.request_id
+    video.task_status = TaskStatusEnum.processing
     await video.save_report(f"{video.engine} has been requested.")
 
 
 async def get_fal_status(video: Video):
-    logging.info(f"Check Video status with uid: {video.uid}")
     # Get and convert fal status to VideoStatus
     status = await fal_client.status_async(
         video.engine.application_name, video.request_id, with_logs=True
     )
     video.status = VideoStatus.from_fal_status(type(status))
+
     # Check video status
     if video.status.is_done:
         payload: VideoWebhookPayload | None = None
@@ -136,18 +137,12 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
                 await process_result(video, result_url)
     video.task_progress = 100
     video.status = VideoStatus.completed
+    video.task_status = TaskStatusEnum.completed
 
     report = (
         f"Fal completed."
         if data.status == "completed"
         else f"Fal update. {video.status}"
     )
-
-    if video.webhook_url:
-        requests.post(
-            video.webhook_url,
-            data=video.json(),
-            headers={"Content-Type": "application/json"},
-        )
 
     await video.save_report(report)

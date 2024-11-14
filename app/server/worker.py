@@ -2,8 +2,9 @@ import asyncio
 import logging
 
 import pytz
-from apps.video.worker import update_video
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from apps.video.worker import update_video
 
 from .config import Settings
 

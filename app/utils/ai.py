@@ -9,6 +9,7 @@ import langdetect
 import singleton
 from metisai.async_metis import AsyncMetisBot
 from pydantic import BaseModel, field_validator
+
 from utils.texttools import backtick_formatter
 
 metis_client = AsyncMetisBot(

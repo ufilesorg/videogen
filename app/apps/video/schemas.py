@@ -176,14 +176,17 @@ class VideoStatus(str, Enum):
             fal_client.Completed: VideoStatus.completed,
         }.get(status, VideoStatus.error)
 
-    @property
-    def done_statuses(self):
+    @classmethod
+    def done_statuses(cls):
         return [
-            VideoStatus.done,
-            VideoStatus.completed,
-            VideoStatus.ok,
-            VideoStatus.cancelled,
-            VideoStatus.error,
+            status.value
+            for status in [
+                VideoStatus.done,
+                VideoStatus.completed,
+                VideoStatus.ok,
+                VideoStatus.cancelled,
+                VideoStatus.error,
+            ]
         ]
 
     @property
@@ -213,7 +216,7 @@ class VideoStatus(str, Enum):
 
     @property
     def is_done(self):
-        return self in self.done_statuses
+        return self in self.done_statuses()
 
 
 class VideoEnginesSchema(BaseModel):

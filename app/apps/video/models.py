@@ -1,7 +1,6 @@
 import asyncio
 
 from fastapi_mongo_base.models import OwnedEntity
-from server.config import Settings
 
 from .schemas import VideoSchema
 
@@ -9,14 +8,6 @@ from .schemas import VideoSchema
 class Video(VideoSchema, OwnedEntity):
     class Settings:
         indexes = OwnedEntity.Settings.indexes
-
-    @property
-    def item_url(self):
-        return f"{Settings.root_url}{Settings.base_path}/{self.uid}"
-
-    @property
-    def service_webhook_url(self):
-        return f"{self.item_url}/webhook"
 
     async def start_processing(self):
         from apps.video.services import video_request

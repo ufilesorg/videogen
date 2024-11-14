@@ -6,20 +6,13 @@ from .services import get_fal_status
 
 
 async def update_video():
-    done_statuses = [
-        VideoStatus.done,
-        VideoStatus.completed,
-        VideoStatus.ok,
-        VideoStatus.cancelled,
-        VideoStatus.error,
-    ]
     data = (
         await Video.get_query()
         .find(
             {
                 "request_id": {"$ne": None},
-                "created_at": {"$lte": datetime.utcnow() - timedelta(minutes=3)},
-                "status": {"$nin": done_statuses},
+                "created_at": {"$lte": datetime.now() - timedelta(minutes=3)},
+                "status": {"$nin": VideoStatus.done_statuses()},
             }
         )
         .to_list()
