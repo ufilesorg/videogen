@@ -10,7 +10,6 @@ from core import exceptions
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from json_advanced import dumps
-from server.config import Settings
 from usso.exceptions import USSOException
 
 from . import config, db, middlewares
@@ -23,7 +22,7 @@ async def lifespan(app: fastapi.FastAPI):  # type: ignore
     await db.init_db()
 
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(update_video, "interval", seconds=Settings.update_time)
+    scheduler.add_job(update_video, "interval", seconds=config.Settings.update_time)
 
     scheduler.start()
     logging.info("Startup complete")
