@@ -1,18 +1,17 @@
+import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
 
 import fastapi
 import pydantic
-from apps.video.worker import update_video
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from core import exceptions
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from json_advanced import dumps
 from usso.exceptions import USSOException
 
-from . import config, db, middlewares
+from . import config, db, middlewares, worker
 
 
 @asynccontextmanager
@@ -20,14 +19,11 @@ async def lifespan(app: fastapi.FastAPI):  # type: ignore
     """Initialize application services."""
     config.Settings().config_logger()
     await db.init_db()
+    app.state.worker = asyncio.create_task(worker.worker())
 
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(update_video, "interval", seconds=config.Settings.update_time)
-
-    scheduler.start()
     logging.info("Startup complete")
     yield
-    scheduler.shutdown()
+    app.state.worker.cancel()
     logging.info("Shutdown complete")
 
 

@@ -234,7 +234,7 @@ class VideoCreateSchema(BaseModel):
     webhook_url: str | None = None
 
     @model_validator(mode="after")
-    def validate_engine(cls, values):
+    def validate_engine(cls, values: "VideoCreateSchema"):
         meta_data = values.meta_data or {}
         engine = values.engine
         validated, message = engine.validate(meta_data)
@@ -252,7 +252,6 @@ class VideoResponse(BaseModel):
 
 class VideoSchema(TaskMixin, OwnedEntitySchema):
     prompt: str = None
-    webhook_url: str | None = None
     request_id: str | None = None
     image_url: str | None = None
     engine: VideoEngines

@@ -19,7 +19,7 @@ class Settings(metaclass=Singleton):
     fal_key: str = os.getenv("FAL_KEY")
     root_url: str = os.getenv("DOMAIN", default="http://localhost:8000")
     mongo_uri: str = os.getenv("MONGO_URI", default="mongodb://127.0.0.1:27017/")
-    project_name: str = os.getenv("PROJECT_NAME", default="Imagine")
+    project_name: str = os.getenv("PROJECT_NAME", default="videogen")
     base_dir: Path = Path(__file__).resolve().parent.parent
     base_path: str = "/v1/apps/videogen"
     update_time: int = int(os.getenv("TASK_UPDATE_TIME", "180"))

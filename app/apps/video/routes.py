@@ -26,7 +26,7 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
 
     def config_routes(self, **kwargs):
         self.router.add_api_route(
-            "",
+            "/",
             self.list_items,
             methods=["GET"],
             response_model=self.list_response_schema,
