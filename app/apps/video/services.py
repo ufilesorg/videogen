@@ -79,7 +79,7 @@ async def video_request(video: Video):
     }
     handler = await fal_client.submit_async(
         video.engine.application_name,
-        # webhook_url=video.service_webhook_url,
+        webhook_url=video.service_webhook_url,
         arguments=data,
     )
     video.request_id = handler.request_id
