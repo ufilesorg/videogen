@@ -12,7 +12,7 @@ class Engines(ABC):
     application_name: str
     thumbnail_url: str
 
-    def __init__(self, meta_data = {}):
+    def __init__(self, meta_data={}):
         self.meta_data = meta_data
 
     @property
@@ -115,7 +115,7 @@ class VideoEngines(str, Enum):
     kling_video = "kling-video"
     kling_video_pro = "kling-video-pro"
 
-    def instance(self, meta_data = {}):
+    def instance(self, meta_data={}):
         return (
             {
                 VideoEngines.runway: RunwayEngine,

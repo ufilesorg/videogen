@@ -1,8 +1,5 @@
 import uuid
 
-from fastapi import BackgroundTasks, File, Request, UploadFile
-from fastapi_mongo_base.routes import AbstractBaseRouter
-from usso.fastapi import jwt_access_security
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoCreateSchema,
@@ -11,7 +8,7 @@ from apps.video.schemas import (
     VideoSchema,
     VideoWebhookData,
 )
-from apps.video.services import process_video_webhook, upload_image
+from apps.video.services import process_video_webhook
 from fastapi import BackgroundTasks, Request
 from fastapi_mongo_base.routes import AbstractBaseRouter
 from usso.fastapi import jwt_access_security
