@@ -43,4 +43,4 @@ jobs:
         script: |
           docker pull ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
           docker stop videogen || true
-          docker run -d --rm --name videogen -p 3000:3005 ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }
+          docker run -d --rm --name videogen -p 3000:3005 ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
