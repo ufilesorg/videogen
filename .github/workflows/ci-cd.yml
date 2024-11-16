@@ -1,0 +1,46 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev  # Adjust to your main branch name
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Log in GitHub Registry
+      uses: docker/login-action@v2
+      with:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }} .
+        docker push ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
+    
+
+  deploy:
+    needs: docker-build
+    runs-on: ubuntu-latest
+
+    steps:
+    # Example of deployment step: SSH into server and deploy
+    - name: Deploy to Server
+      uses: appleboy/ssh-action@v0.1.3
+      with:
+        host: ${{ secrets.DEPLOY_SERVER }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          docker pull ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
+          docker stop videogen || true
+          docker run -d --rm --name videogen -p 3000:3005 ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }
