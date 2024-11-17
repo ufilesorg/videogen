@@ -1,12 +1,21 @@
 services:
   videogen:
+    image: ${IMAGE_NAME}
     build: app
     restart: unless-stopped
     command: python app.py
     expose:
       - 8000
-    env_file:
-      - .env
+    environment:
+      - PROJECT_NAME
+      - DOMAIN
+      - FAL_KEY
+      - MONGO_URI
+      - REDIS_URI
+      - USSO_REFRESH_TOKEN
+      - USSO_REFRESH_URL
+      - USSO_JWT_CONFIG
+      - TASK_UPDATE_TIME
     volumes:
       - ./app:/app
     networks:
