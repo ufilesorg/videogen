@@ -9,6 +9,7 @@ from fastapi_mongo_base._utils.basic import try_except_wrapper
 from fastapi_mongo_base.tasks import TaskStatusEnum
 from usso.async_session import AsyncUssoSession
 
+from utils import ufiles, ai
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoResponse,
@@ -64,8 +65,15 @@ async def upload_ufile(
 
 
 async def create_prompt(video: Video, enhance: bool = False):
+    # Translate prompt using ai
+    prompt = await ai.translate(video.prompt)
+    prompt = prompt.strip(",").strip()
+    
+    if enhance:
+        # TODO: Enhance the prompt
+        pass
 
-    return video.prompt
+    return prompt
 
 
 @try_except_wrapper
