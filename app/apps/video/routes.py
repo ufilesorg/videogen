@@ -23,7 +23,7 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
             user_dependency=jwt_access_security,
             schema=VideoSchema,
             tags=["Video"],
-            prefix="",
+            #prefix="",
         )
 
     def config_routes(self, **kwargs):
