@@ -27,7 +27,7 @@ class Engines(ABC):
 
 class RunwayEngine(Engines):
     application_name = "fal-ai/runway-gen3/turbo/image-to-video"
-    thumbnail_url = "https://runwayml.com/icon.png"
+    thumbnail_url = "https://media.pixiee.io/v1/f/bdefc333-f9d6-4d48-9f88-62230baa72a6/runway-icon.png"
 
     @property
     def price(self):
@@ -49,7 +49,7 @@ class RunwayEngine(Engines):
 
 class HailuoEngine(Engines):
     application_name = "fal-ai/minimax-video/image-to-video"
-    thumbnail_url = "https://hailuoai.video/assets/img/side-nav-logo.png"
+    thumbnail_url = "https://media.pixiee.io/v1/f/8f1e0257-e2ad-454d-b81c-9d09a6aa7916/hailuo-icon.png"
 
     @property
     def price(self):
@@ -67,7 +67,7 @@ class HailuoEngine(Engines):
 
 class KlingVideoEngine(Engines):
     application_name = "fal-ai/kling-video/v1/standard/image-to-video"
-    thumbnail_url = "https://www.klingvideo.ai/assets/imgs/kling/klingvedioai-logo.png"
+    thumbnail_url = "https://media.pixiee.io/v1/f/abe6c5ae-3d88-4d67-a5a8-d421042522a4/kling-video-icon.png"
 
     @property
     def price(self):
@@ -89,7 +89,7 @@ class KlingVideoEngine(Engines):
 
 class KlingVideoProEngine(Engines):
     application_name = "fal-ai/kling-video/v1/pro/image-to-video"
-    thumbnail_url = "https://www.klingvideo.ai/assets/imgs/kling/klingvedioai-logo.png"
+    thumbnail_url = "https://media.pixiee.io/v1/f/abe6c5ae-3d88-4d67-a5a8-d421042522a4/kling-video-icon.png"
 
     @property
     def price(self):
