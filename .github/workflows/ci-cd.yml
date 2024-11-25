@@ -41,7 +41,7 @@ jobs:
     - name: Deploy to Server
       uses: appleboy/ssh-action@v0.1.6
       env:
-        PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+        PROJECT_NAME: "videogen"
         DOMAIN: ${{ secrets.DOMAIN }} 
         FAL_KEY: ${{ secrets.FAL_KEY }}
         MONGO_URI: ${{ secrets.MONGO_URI }}
@@ -56,7 +56,7 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY }}
         envs:  PROJECT_NAME, DOMAIN, FAL_KEY, MONGO_URI, REDIS_URI, USSO_REFRESH_TOKEN, USSO_REFRESH_URL, USSO_JWT_CONFIG, TASK_UPDATE_TIME, IMAGE_NAME
         script: |
-          echo "$FAL_KEY"
+          echo "$PROJECT_NAME"
           cd videogen
           git pull
           git checkout dev
