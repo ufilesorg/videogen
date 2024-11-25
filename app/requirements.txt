@@ -1,5 +1,6 @@
 uvicorn
 fastapi
+pytz
 pydantic
 
 singleton_package
