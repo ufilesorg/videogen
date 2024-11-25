@@ -1,17 +1,17 @@
+import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
 
 import fastapi
 import pydantic
+from core import exceptions
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from json_advanced import dumps
 from usso.exceptions import USSOException
 
-from core import exceptions
-
-from . import config, db, middlewares
+from . import config, db, middlewares, worker
 
 
 @asynccontextmanager
@@ -19,9 +19,11 @@ async def lifespan(app: fastapi.FastAPI):  # type: ignore
     """Initialize application services."""
     config.Settings().config_logger()
     await db.init_db()
+    app.state.worker = asyncio.create_task(worker.worker())
 
     logging.info("Startup complete")
     yield
+    app.state.worker.cancel()
     logging.info("Shutdown complete")
 
 
@@ -59,6 +61,7 @@ async def usso_exception_handler(request: fastapi.Request, exc: USSOException):
         status_code=exc.status_code,
         content={"message": exc.message, "error": exc.error},
     )
+
 
 @app.exception_handler(pydantic.ValidationError)
 @app.exception_handler(fastapi.exceptions.ResponseValidationError)
@@ -127,3 +130,13 @@ async def health(request: fastapi.Request):
         "forwarded_proto": forwarded_proto,
         "forwarded_for": forwarded_for,
     }
+
+
+@app.get(f"{config.Settings.base_path}/logs", include_in_schema=False)
+async def logs():
+    from collections import deque
+
+    with open("logs/info.log", "rb") as f:
+        last_100_lines = deque(f, maxlen=100)
+
+    return [line.decode("utf-8") for line in last_100_lines]

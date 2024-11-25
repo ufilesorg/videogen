@@ -15,16 +15,15 @@ dotenv.load_dotenv()
 @dataclasses.dataclass
 class Settings(metaclass=Singleton):
     """Server config settings."""
-    root_url: str = os.getenv("DOMAIN", default="http://localhost:8000")
-    mongo_uri: str = os.getenv("MONGO_URI", default="mongodb://127.0.0.1:27017/")
-    project_name: str = os.getenv("PROJECT_NAME", default="Imagine")
-    base_dir: Path = Path(__file__).resolve().parent.parent
-    base_path: str = "/v1/apps/videogen"
-
-    update_time: int = 5
-    page_max_limit: int = 100
 
     fal_key: str = os.getenv("FAL_KEY")
+    root_url: str = os.getenv("DOMAIN", default="http://localhost:8000")
+    mongo_uri: str = os.getenv("MONGO_URI", default="mongodb://127.0.0.1:27017/")
+    project_name: str = os.getenv("PROJECT_NAME", default="videogen")
+    base_dir: Path = Path(__file__).resolve().parent.parent
+    base_path: str = "/v1/apps/videogen"
+    update_time: int = int(os.getenv("TASK_UPDATE_TIME", 30))
+    page_max_limit: int = 100
 
     JWT_CONFIG: str = os.getenv(
         "USSO_JWT_CONFIG",
