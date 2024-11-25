@@ -41,13 +41,13 @@ jobs:
     - name: Deploy to Server
       uses: appleboy/ssh-action@v0.1.6
       env:
-        PROJECT_NAME: ${{ variables.PROJECT_NAME }} 
-        DOMAIN: ${{ secrets.DOMAIN }} 
+        PROJECT_NAME: "videogen"
+        DOMAIN: "media.pixiee.io"
         FAL_KEY: ${{ secrets.FAL_KEY }}
         MONGO_URI: ${{ secrets.MONGO_URI }}
         REDIS_URI: ${{ secrets.REDIS_URI }}
         USSO_REFRESH_TOKEN: ${{ secrets.USSO_REFRESH_TOKEN }}
-        USSO_REFRESH_URL: ${{ secrets.USSO_REFRESH_URL }}
+        USSO_REFRESH_URL: "https://sso.pixiee.io/auth/refresh"
         USSO_JWT_CONFIG: ${{ secrets.USSO_JWT_CONFIG }}
         IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
       with:       
@@ -56,10 +56,8 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY }}
         envs:  PROJECT_NAME, DOMAIN, FAL_KEY, MONGO_URI, REDIS_URI, USSO_REFRESH_TOKEN, USSO_REFRESH_URL, USSO_JWT_CONFIG, TASK_UPDATE_TIME, IMAGE_NAME
         script: |
-          echo "$PROJECT_NAME"
           cd videogen
           git pull
-          git checkout dev
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker compose pull
           docker compose up -d 
