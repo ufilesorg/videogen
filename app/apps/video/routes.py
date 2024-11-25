@@ -1,10 +1,6 @@
 import logging
 import uuid
 
-from fastapi import BackgroundTasks, Request
-from fastapi_mongo_base.routes import AbstractBaseRouter
-from usso.fastapi import jwt_access_security
-
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoCreateSchema,
@@ -14,6 +10,9 @@ from apps.video.schemas import (
     VideoWebhookData,
 )
 from apps.video.services import process_video_webhook
+from fastapi import BackgroundTasks, Request
+from fastapi_mongo_base.routes import AbstractBaseRouter
+from usso.fastapi import jwt_access_security
 
 
 class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
@@ -23,7 +22,7 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
             user_dependency=jwt_access_security,
             schema=VideoSchema,
             tags=["Video"],
-            #prefix="",
+            # prefix="",
         )
 
     def config_routes(self, **kwargs):
