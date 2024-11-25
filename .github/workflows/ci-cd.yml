@@ -56,6 +56,8 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY }}
         envs:  PROJECT_NAME, DOMAIN, FAL_KEY, MONGO_URI, REDIS_URI, USSO_REFRESH_TOKEN, USSO_REFRESH_URL, USSO_JWT_CONFIG, TASK_UPDATE_TIME, IMAGE_NAME
         script: |
+          cd videogen
+          git pull
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker compose pull
           docker compose up -d 
