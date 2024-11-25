@@ -41,7 +41,7 @@ jobs:
     - name: Deploy to Server
       uses: appleboy/ssh-action@v0.1.6
       env:
-        PROJECT_NAME: "videogen"
+        PROJECT_NAME: ${{ variables.PROJECT_NAME }} 
         DOMAIN: ${{ secrets.DOMAIN }} 
         FAL_KEY: ${{ secrets.FAL_KEY }}
         MONGO_URI: ${{ secrets.MONGO_URI }}
