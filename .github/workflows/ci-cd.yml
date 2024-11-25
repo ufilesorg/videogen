@@ -48,7 +48,6 @@ jobs:
         USSO_REFRESH_TOKEN: ${{ secrets.USSO_REFRESH_TOKEN }}
         USSO_REFRESH_URL: ${{ secrets.USSO_REFRESH_URL }}
         USSO_JWT_CONFIG: ${{ secrets.USSO_JWT_CONFIG }}
-        TASK_UPDATE_TIME: ${{ secrets.TASK_UPDATE_TIME }}
         IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
       with:       
         host: ${{ secrets.DEPLOY_SERVER }}

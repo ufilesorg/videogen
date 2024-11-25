@@ -15,7 +15,6 @@ services:
       - USSO_REFRESH_TOKEN
       - USSO_REFRESH_URL
       - USSO_JWT_CONFIG
-      - TASK_UPDATE_TIME
     volumes:
       - ./app:/app
     networks:
