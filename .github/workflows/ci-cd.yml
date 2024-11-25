@@ -56,7 +56,7 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY }}
         envs:  PROJECT_NAME, DOMAIN, FAL_KEY, MONGO_URI, REDIS_URI, USSO_REFRESH_TOKEN, USSO_REFRESH_URL, USSO_JWT_CONFIG, TASK_UPDATE_TIME, IMAGE_NAME
         script: |
-          echo $PROJECT_NAME
+          echo "$FAL_KEY"
           cd videogen
           git pull
           git checkout dev
