@@ -35,26 +35,26 @@ jobs:
   deploy:
     needs: docker-build
     runs-on: ubuntu-latest
-
+    environment: production
     steps:
     # Example of deployment step: SSH into server and deploy
     - name: Deploy to Server
       uses: appleboy/ssh-action@v0.1.6
-      # env:
-      #   PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
-      #   DOMAIN: ${{ secrets.DOMAIN }} 
-      #   FAL_KEY: ${{ secrets.FAL_KEY }}
-      #   MONGO_URI: ${{ secrets.MONGO_URI }}
-      #   REDIS_URI: ${{ secrets.REDIS_URI }}
-      #   USSO_REFRESH_TOKEN: ${{ secrets.USSO_REFRESH_TOKEN }}
-      #   USSO_REFRESH_URL: ${{ secrets.USSO_REFRESH_URL }}
-      #   USSO_JWT_CONFIG: ${{ secrets.USSO_JWT_CONFIG }}
-      #   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
+      env:
+        PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+        DOMAIN: ${{ secrets.DOMAIN }} 
+        FAL_KEY: ${{ secrets.FAL_KEY }}
+        MONGO_URI: ${{ secrets.MONGO_URI }}
+        REDIS_URI: ${{ secrets.REDIS_URI }}
+        USSO_REFRESH_TOKEN: ${{ secrets.USSO_REFRESH_TOKEN }}
+        USSO_REFRESH_URL: ${{ secrets.USSO_REFRESH_URL }}
+        USSO_JWT_CONFIG: ${{ secrets.USSO_JWT_CONFIG }}
+        IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/videogen-app:${{ github.sha }}
       with:       
         host: ${{ secrets.DEPLOY_SERVER }}
         username: ${{ secrets.DEPLOY_USER }}
         key: ${{ secrets.DEPLOY_KEY }}
-      #  envs:  PROJECT_NAME, DOMAIN, FAL_KEY, MONGO_URI, REDIS_URI, USSO_REFRESH_TOKEN, USSO_REFRESH_URL, USSO_JWT_CONFIG, TASK_UPDATE_TIME, IMAGE_NAME
+        envs:  PROJECT_NAME, DOMAIN, FAL_KEY, MONGO_URI, REDIS_URI, USSO_REFRESH_TOKEN, USSO_REFRESH_URL, USSO_JWT_CONFIG, TASK_UPDATE_TIME, IMAGE_NAME
         script: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker compose pull
