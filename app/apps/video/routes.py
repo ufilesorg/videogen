@@ -13,6 +13,7 @@ from apps.video.services import process_video_webhook
 from fastapi import BackgroundTasks, Request
 from fastapi_mongo_base.routes import AbstractBaseRouter
 from usso.fastapi import jwt_access_security
+from utils.usages import Usages
 
 
 class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
@@ -66,7 +67,10 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
         data: VideoCreateSchema,
         background_tasks: BackgroundTasks,
     ):
+        usage = Usages()
+        await usage.create(await self.get_user_id(request))
         item: Video = await super().create_item(request, data.model_dump())
+        await usage.update(item)
         background_tasks.add_task(item.start_processing)
         return item
 
