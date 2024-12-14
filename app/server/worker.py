@@ -1,13 +1,13 @@
 import asyncio
 import logging
 
-import pytz
+# import pytz
 from apps.video.worker import update_video
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .config import Settings
 
-irst_timezone = pytz.timezone("Asia/Tehran")
+# irst_timezone = pytz.timezone("Asia/Tehran")
 logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
 

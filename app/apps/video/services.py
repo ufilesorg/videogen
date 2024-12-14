@@ -46,7 +46,7 @@ async def upload_ufile(
     file_bytes: BytesIO,
     user_id: uuid.UUID,
     meta_data: dict | None = None,
-    file_upload_dir: str = "imaginations",
+    file_upload_dir: str = "videogens",
 ):
     async with AsyncUssoSession(
         ufiles.AsyncUFiles().refresh_url,
@@ -133,7 +133,7 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
                         file = await upload_ufile(
                             video_bytes,
                             user_id=str(video.user_id),
-                            file_upload_dir="imaginations",
+                            file_upload_dir="videogens",
                         )
                         await process_result(video, file.url)
                     else:
