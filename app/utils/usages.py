@@ -3,11 +3,10 @@ import uuid
 
 import aiohttp
 import singleton
+from core.exceptions import BaseHTTPException
 from fastapi_mongo_base.schemas import OwnedEntitySchema
 from pydantic import BaseModel
 from usso.async_session import AsyncUssoSession
-
-from core.exceptions import BaseHTTPException
 
 
 class UsageInput(BaseModel):
@@ -29,16 +28,16 @@ class Usages(metaclass=singleton.Singleton):
 
     async def create(self, user_id: str | uuid.UUID, amount: int = 1):
         async with AsyncUssoSession(self.refresh_url, self.refresh_token) as client:
-            return await self.create_ussage_session(
+            return await self.create_usage_session(
                 client, UsageInput(user_id=str(user_id), amount=amount)
             )
 
     async def update(self, item: OwnedEntitySchema):
         self.item.meta_data = {"uid": item.uid}
         async with AsyncUssoSession(self.refresh_url, self.refresh_token) as client:
-            return await self.update_ussage_session(client)
+            return await self.update_usage_session(client)
 
-    async def create_ussage_session(
+    async def create_usage_session(
         self, client: aiohttp.ClientSession, data: UsageInput
     ):
         async with client.post(
@@ -55,7 +54,7 @@ class Usages(metaclass=singleton.Singleton):
                     message=result["message"] or "",
                 )
 
-    async def update_ussage_session(self, client: aiohttp.ClientSession):
+    async def update_usage_session(self, client: aiohttp.ClientSession):
         async with client.patch(
             f"{self.upload_url}{self.item.uid}", json=self.item.model_dump(mode="json")
         ) as response:
