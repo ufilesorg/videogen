@@ -11,12 +11,11 @@ from apps.video.schemas import (
 )
 from apps.video.services import process_video_webhook
 from fastapi import BackgroundTasks, Request
-from fastapi_mongo_base.routes import AbstractBaseRouter
+from fastapi_mongo_base.routes import AbstractTaskRouter
 from usso.fastapi import jwt_access_security
-from utils.usages import Usages
 
 
-class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
+class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
     def __init__(self):
         super().__init__(
             model=Video,
@@ -67,11 +66,10 @@ class VideoRouter(AbstractBaseRouter[Video, VideoSchema]):
         data: VideoCreateSchema,
         background_tasks: BackgroundTasks,
     ):
-        usage = Usages()
-        await usage.create(await self.get_user_id(request))
-        item: Video = await super().create_item(request, data.model_dump())
-        await usage.update(item)
-        background_tasks.add_task(item.start_processing)
+        item: Video = await super(AbstractTaskRouter, self).create_item(request, data)
+
+        if item.task_status == "init":
+            background_tasks.add_task(item.start_processing)
         return item
 
     async def webhook(self, request: Request, uid: uuid.UUID, data: VideoWebhookData):

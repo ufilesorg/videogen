@@ -1,10 +1,10 @@
 import json
-import re
 import uuid
 from io import BytesIO
 
-import aiohttp
 import fal_client
+import httpx
+import ufiles
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoResponse,
@@ -12,24 +12,9 @@ from apps.video.schemas import (
     VideoWebhookData,
     VideoWebhookPayload,
 )
-from fastapi_mongo_base._utils.basic import try_except_wrapper
 from fastapi_mongo_base.tasks import TaskStatusEnum
-from usso.async_session import AsyncUssoSession
-from utils import ai, ufiles
-
-
-def sanitize_filename(prompt: str):
-    # Remove invalid characters and replace spaces with underscores
-    # Valid characters: alphanumeric, underscores, and periods
-    prompt_parts = prompt.split(",")
-    prompt = prompt_parts[1] if len(prompt_parts) > 1 else prompt
-    prompt = prompt.strip()
-    position = prompt.find(" ", 80)
-    if position > 120 or position == -1:
-        position = 100
-    sanitized = re.sub(r"[^a-zA-Z0-9_. ]", "", prompt)
-    sanitized = sanitized.replace(" ", "_")  # Replace spaces with underscores
-    return sanitized[:position]  # Limit to 100 characters
+from fastapi_mongo_base.utils.basic import try_except_wrapper
+from server.config import Settings
 
 
 async def process_result(video: Video, file_res: str):
@@ -48,18 +33,19 @@ async def upload_ufile(
     meta_data: dict | None = None,
     file_upload_dir: str = "videogens",
 ):
-    async with AsyncUssoSession(
-        ufiles.AsyncUFiles().refresh_url,
-        ufiles.AsyncUFiles().refresh_token,
-    ) as client:
-        return await ufiles.AsyncUFiles().upload_bytes_session(
-            client,
-            file_bytes,
-            filename=f"{file_upload_dir}/{file_bytes.name}",
-            public_permission=json.dumps({"permission": ufiles.PermissionEnum.READ}),
-            user_id=str(user_id),
-            meta_data=meta_data,
-        )
+    client = ufiles.AsyncUFiles(
+        ufiles_base_url=Settings.UFILES_BASE_URL,
+        usso_base_url=Settings.USSO_BASE_URL,
+        api_key=Settings.UFILES_API_KEY,
+    )
+
+    return await client.upload_bytes(
+        file_bytes,
+        filename=f"{file_upload_dir}/{file_bytes.name}",
+        public_permission=json.dumps({"permission": ufiles.PermissionEnum.READ}),
+        user_id=str(user_id),
+        meta_data=meta_data,
+    )
 
 
 async def create_prompt(video: Video, enhance: bool = False):
@@ -123,21 +109,21 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
 
     if data.status.is_success:
         result_url = data.payload.video.get("url", "")
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient() as session:
             try:
-                async with session.get(result_url) as response:
-                    if response.status == 200:
-                        video_bytes = BytesIO(await response.read())
-                        video_bytes.seek(0)
-                        video_bytes.name = f"video{str(uuid.uuid4())}.mp4"
-                        file = await upload_ufile(
-                            video_bytes,
-                            user_id=str(video.user_id),
-                            file_upload_dir="videogens",
-                        )
-                        await process_result(video, file.url)
-                    else:
-                        await process_result(video, result_url)
+                response = await session.get(result_url)
+                if response.status_code == 200:
+                    video_bytes = BytesIO(response.content)
+                    video_bytes.seek(0)
+                    video_bytes.name = f"video{str(uuid.uuid4())}.mp4"
+                    file = await upload_ufile(
+                        video_bytes,
+                        user_id=str(video.user_id),
+                        file_upload_dir="videogens",
+                    )
+                    await process_result(video, file.url)
+                else:
+                    await process_result(video, result_url)
             except Exception as e:
                 print(e)
                 await process_result(video, result_url)

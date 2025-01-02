@@ -25,26 +25,26 @@ class Engines(ABC):
         pass
 
 
-class RunwayEngine(Engines):
-    application_name = "fal-ai/runway-gen3/turbo/image-to-video"
-    thumbnail_url = "https://media.pixiee.io/v1/f/bdefc333-f9d6-4d48-9f88-62230baa72a6/runway-icon.png"
+# class RunwayEngine(Engines):
+#     application_name = "fal-ai/runway-gen3/turbo/image-to-video"
+#     thumbnail_url = "https://media.pixiee.io/v1/f/bdefc333-f9d6-4d48-9f88-62230baa72a6/runway-icon.png"
 
-    @property
-    def price(self):
-        return 0.25
+#     @property
+#     def price(self):
+#         return 0.25
 
-    def validate(self):
-        duration = self.meta_data.get("duration", 5)
-        ratio = self.meta_data.get("ratio", "16:9")
-        duration_valid = duration in {5, 10}
-        ratio_valid = ratio in {"16:9", "9:16"}
-        if not duration_valid:
-            message = "Duration must be 5 or 10"
-        elif not ratio_valid:
-            message = "Ratio must be 16:9 or 9:16"
-        else:
-            message = None
-        return duration_valid and ratio_valid, message
+#     def validate(self):
+#         duration = self.meta_data.get("duration", 5)
+#         ratio = self.meta_data.get("ratio", "16:9")
+#         duration_valid = duration in {5, 10}
+#         ratio_valid = ratio in {"16:9", "9:16"}
+#         if not duration_valid:
+#             message = "Duration must be 5 or 10"
+#         elif not ratio_valid:
+#             message = "Ratio must be 16:9 or 9:16"
+#         else:
+#             message = None
+#         return duration_valid and ratio_valid, message
 
 
 class HailuoEngine(Engines):
@@ -110,7 +110,7 @@ class KlingVideoProEngine(Engines):
 
 
 class VideoEngines(str, Enum):
-    runway = "runway"
+    # runway = "runway"
     hailuo = "hailuo"
     kling_video = "kling-video"
     kling_video_pro = "kling-video-pro"
@@ -118,7 +118,7 @@ class VideoEngines(str, Enum):
     def instance(self, meta_data={}):
         return (
             {
-                VideoEngines.runway: RunwayEngine,
+                # VideoEngines.runway: RunwayEngine,
                 VideoEngines.hailuo: HailuoEngine,
                 VideoEngines.kling_video: KlingVideoEngine,
                 VideoEngines.kling_video_pro: KlingVideoProEngine,
@@ -220,7 +220,7 @@ class VideoStatus(str, Enum):
 
 
 class VideoEnginesSchema(BaseModel):
-    engine: VideoEngines = VideoEngines.runway
+    engine: VideoEngines = VideoEngines.kling_video
     thumbnail_url: str
     price: float
 
