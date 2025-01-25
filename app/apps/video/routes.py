@@ -68,8 +68,8 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
     ):
         item: Video = await super(AbstractTaskRouter, self).create_item(request, data)
 
-        if item.task_status == "init":
-            background_tasks.add_task(item.start_processing)
+        item.task_status == "init"
+        background_tasks.add_task(item.start_processing)
         return item
 
     async def webhook(self, request: Request, uid: uuid.UUID, data: VideoWebhookData):
