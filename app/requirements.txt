@@ -16,13 +16,13 @@ beanie
 fastapi-mongo-base
 ufaas-fastapi-business
 
-apscheduler
-pytz
-pillow
-
 ufiles
 ufaas
 usso[fastapi]
+
+apscheduler
+pytz
+pillow
 
 metisai
 fal-client

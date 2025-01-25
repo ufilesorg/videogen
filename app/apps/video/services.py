@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from io import BytesIO
 
@@ -15,6 +16,9 @@ from apps.video.schemas import (
 from fastapi_mongo_base.tasks import TaskStatusEnum
 from fastapi_mongo_base.utils.basic import try_except_wrapper
 from server.config import Settings
+from ufaas import AsyncUFaaS
+from ufaas.apps.saas.schemas import UsageCreateSchema
+from utils import ai
 
 
 async def process_result(video: Video, file_res: str):
@@ -62,6 +66,12 @@ async def create_prompt(video: Video, enhance: bool = False):
 
 @try_except_wrapper
 async def video_request(video: Video):
+    usage = await meter_cost(video)
+    if usage is None:
+        logging.error(f"Insufficient balance. {video.user_id} {video.engine.value}")
+        await video.fail("Insufficient balance.")
+        return
+
     prompt = await create_prompt(video)
     video.prompt = prompt
     data = {
@@ -138,3 +148,54 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
     )
 
     await video.save_report(report)
+
+
+@try_except_wrapper
+async def meter_cost(video: Video):
+    ufaas_client = AsyncUFaaS(
+        ufaas_base_url=Settings.UFAAS_BASE_URL,
+        usso_base_url=Settings.USSO_BASE_URL,
+        # TODO: Change to UFAAS_API_KEY name
+        api_key=Settings.UFILES_API_KEY,
+    )
+    usage_schema = UsageCreateSchema(
+        user_id=video.user_id,
+        asset="coin",
+        amount=video.engine.price,
+        variant="video",
+    )
+    usage = await ufaas_client.saas.usages.create_item(
+        usage_schema.model_dump(mode="json")
+    )
+    video.usage_id = usage.uid
+    await video.save()
+    return usage
+
+
+@try_except_wrapper
+async def get_quota(user_id: uuid.UUID):
+    ufaas_client = AsyncUFaaS(
+        ufaas_base_url=Settings.UFAAS_BASE_URL,
+        usso_base_url=Settings.USSO_BASE_URL,
+        # TODO: Change to UFAAS_API_KEY name
+        api_key=Settings.UFILES_API_KEY,
+    )
+    quotas = await ufaas_client.saas.enrollments.get_quotas(
+        user_id=user_id,
+        asset="coin",
+        variant="video",
+    )
+    return quotas.quota
+
+
+@try_except_wrapper
+async def cancel_usage(video: Video):
+    if video.usage_id is None:
+        return
+
+    ufaas_client = AsyncUFaaS(
+        ufaas_base_url=Settings.UFAAS_BASE_URL,
+        usso_base_url=Settings.USSO_BASE_URL,
+        api_key=Settings.UFILES_API_KEY,
+    )
+    await ufaas_client.saas.usages.cancel_item(video.usage_id)

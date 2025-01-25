@@ -25,26 +25,26 @@ class Engines(ABC):
         pass
 
 
-# class RunwayEngine(Engines):
-#     application_name = "fal-ai/runway-gen3/turbo/image-to-video"
-#     thumbnail_url = "https://media.pixiee.io/v1/f/bdefc333-f9d6-4d48-9f88-62230baa72a6/runway-icon.png"
+class RunwayEngine(Engines):
+    application_name = "fal-ai/runway-gen3/turbo/image-to-video"
+    thumbnail_url = "https://media.pixiee.io/v1/f/bdefc333-f9d6-4d48-9f88-62230baa72a6/runway-icon.png"
 
-#     @property
-#     def price(self):
-#         return 0.25
+    @property
+    def price(self):
+        return 75
 
-#     def validate(self):
-#         duration = self.meta_data.get("duration", 5)
-#         ratio = self.meta_data.get("ratio", "16:9")
-#         duration_valid = duration in {5, 10}
-#         ratio_valid = ratio in {"16:9", "9:16"}
-#         if not duration_valid:
-#             message = "Duration must be 5 or 10"
-#         elif not ratio_valid:
-#             message = "Ratio must be 16:9 or 9:16"
-#         else:
-#             message = None
-#         return duration_valid and ratio_valid, message
+    def validate(self):
+        duration = self.meta_data.get("duration", 5)
+        ratio = self.meta_data.get("ratio", "16:9")
+        duration_valid = duration in {5, 10}
+        ratio_valid = ratio in {"16:9", "9:16"}
+        if not duration_valid:
+            message = "Duration must be 5 or 10"
+        elif not ratio_valid:
+            message = "Ratio must be 16:9 or 9:16"
+        else:
+            message = None
+        return duration_valid and ratio_valid, message
 
 
 class HailuoEngine(Engines):
@@ -53,7 +53,7 @@ class HailuoEngine(Engines):
 
     @property
     def price(self):
-        return 0.5
+        return 150
 
     def validate(self):
         prompt_optimizer = self.meta_data.get("prompt_optimizer", True)
@@ -71,7 +71,7 @@ class KlingVideoEngine(Engines):
 
     @property
     def price(self):
-        return 0.03
+        return 10
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -88,12 +88,12 @@ class KlingVideoEngine(Engines):
 
 
 class KlingVideoProEngine(Engines):
-    application_name = "fal-ai/kling-video/v1/pro/image-to-video"
+    application_name = "fal-ai/kling-video/v1.6/pro/image-to-video"
     thumbnail_url = "https://media.pixiee.io/v1/f/abe6c5ae-3d88-4d67-a5a8-d421042522a4/kling-video-icon.png"
 
     @property
     def price(self):
-        return 0.125
+        return 50
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -110,7 +110,7 @@ class KlingVideoProEngine(Engines):
 
 
 class VideoEngines(str, Enum):
-    # runway = "runway"
+    runway = "runway"
     hailuo = "hailuo"
     kling_video = "kling-video"
     kling_video_pro = "kling-video-pro"
@@ -261,6 +261,7 @@ class VideoSchema(TaskMixin, OwnedEntitySchema):
     meta_data: dict[str, Any] | None = None
     status: VideoStatus = VideoStatus.draft
     results: VideoResponse | None = None
+    usage_id: str | None = None
 
 
 class VideoWebhookPayload(BaseModel):

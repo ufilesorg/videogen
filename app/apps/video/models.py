@@ -31,10 +31,13 @@ class Video(VideoSchema, OwnedEntity):
         return -1
 
     async def fail(self, message: str):
+        from .services import cancel_usage
+
         self.task_status = "error"
         self.status = "error"
         await self.save_report(f"Image failed after retries, {message}", emit=False)
         await self.save_and_emit()
+        await cancel_usage(self)
 
     @classmethod
     async def get_item(cls, uid, user_id, *args, **kwargs) -> "Video":
