@@ -71,7 +71,7 @@ class KlingVideoEngine(Engines):
 
     @property
     def price(self):
-        return 10
+        return 40
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -93,7 +93,7 @@ class KlingVideoProEngine(Engines):
 
     @property
     def price(self):
-        return 50
+        return 100
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -110,18 +110,18 @@ class KlingVideoProEngine(Engines):
 
 
 class VideoEngines(str, Enum):
-    runway = "runway"
+    # runway = "runway"
     hailuo = "hailuo"
-    kling_video = "kling-video"
-    kling_video_pro = "kling-video-pro"
+    kling_v1_video = "kling-v1-video"
+    kling_v1_6_pro = "kling-v1-6-pro"
 
     def instance(self, meta_data={}):
         return (
             {
                 # VideoEngines.runway: RunwayEngine,
                 VideoEngines.hailuo: HailuoEngine,
-                VideoEngines.kling_video: KlingVideoEngine,
-                VideoEngines.kling_video_pro: KlingVideoProEngine,
+                VideoEngines.kling_v1_video: KlingVideoEngine,
+                VideoEngines.kling_v1_6_pro: KlingVideoProEngine,
             }[self]
         )(meta_data)
 
@@ -220,7 +220,7 @@ class VideoStatus(str, Enum):
 
 
 class VideoEnginesSchema(BaseModel):
-    engine: VideoEngines = VideoEngines.kling_video
+    engine: VideoEngines = VideoEngines.kling_v1_6_pro
     thumbnail_url: str
     price: float
 

@@ -1,12 +1,13 @@
+import logging
 from datetime import datetime, timedelta
 
 from .models import Video
 from .schemas import VideoStatus
-from .services import get_fal_status
+from .services import get_fal_status, cancel_usage
 
 
 async def update_video():
-    data = (
+    data: list[Video] = (
         await Video.get_query()
         .find(
             {
@@ -21,7 +22,9 @@ async def update_video():
     for video in data:
         try:
             await get_fal_status(video)
-        except Exception:
+        except Exception as e:
             # Except convert to draft
-            video.status = VideoStatus.draft
-            await video.save()
+            logging.error(f"update video failed {type(e)} {e}")
+            video.status = VideoStatus.error
+            await video.save_report(f"update video failed {type(e)} {e}")
+            await cancel_usage(video)
