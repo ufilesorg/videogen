@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from .models import Video
 from .schemas import VideoStatus
-from .services import get_fal_status, cancel_usage
+from .services import cancel_usage, get_fal_status
 
 
 async def update_video():

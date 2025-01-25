@@ -9,7 +9,7 @@ from apps.video.schemas import (
     VideoSchema,
     VideoWebhookData,
 )
-from apps.video.services import process_video_webhook
+from apps.video.services import check_quota, process_video_webhook
 from fastapi import BackgroundTasks, Request
 from fastapi_mongo_base.routes import AbstractTaskRouter
 from usso.fastapi import jwt_access_security
@@ -67,7 +67,7 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         background_tasks: BackgroundTasks,
     ):
         item: Video = await super(AbstractTaskRouter, self).create_item(request, data)
-
+        await check_quota(item)
         item.task_status == "init"
         background_tasks.add_task(item.start_processing)
         return item
@@ -86,5 +86,9 @@ router = VideoRouter().router
 
 @router.get("/engines")
 async def engines():
-    engines = [VideoEnginesSchema.from_model(engine) for engine in VideoEngines]
+    engines = [
+        VideoEnginesSchema.from_model(engine)
+        for engine in VideoEngines
+        if engine != VideoEngines.runway
+    ]
     return engines

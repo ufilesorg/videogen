@@ -16,12 +16,13 @@ from apps.video.schemas import (
 from fastapi_mongo_base.tasks import TaskStatusEnum
 from fastapi_mongo_base.utils.basic import try_except_wrapper
 from server.config import Settings
-from ufaas import AsyncUFaaS
+from ufaas import AsyncUFaaS, exceptions
 from ufaas.apps.saas.schemas import UsageCreateSchema
 from utils import ai
 
 
 async def process_result(video: Video, file_res: str):
+    # TODO: Get width and height from the video
     video.results = VideoResponse(
         url=file_res,
         width=22,
@@ -49,6 +50,7 @@ async def upload_ufile(
         public_permission=json.dumps({"permission": ufiles.PermissionEnum.READ}),
         user_id=str(user_id),
         meta_data=meta_data,
+        timeout=None,
     )
 
 
@@ -56,11 +58,6 @@ async def create_prompt(video: Video, enhance: bool = False):
     # Translate prompt using ai
     prompt = await ai.translate(video.prompt)
     prompt = prompt.strip(",").strip()
-
-    if enhance:
-        # TODO: Enhance the prompt
-        pass
-
     return prompt
 
 
@@ -86,6 +83,7 @@ async def video_request(video: Video):
     )
     video.request_id = handler.request_id
     video.task_status = TaskStatusEnum.processing
+    video.status = VideoStatus.processing
     await video.save_report(f"{video.engine} has been requested.")
 
 
@@ -121,7 +119,7 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
         result_url = data.payload.video.get("url", "")
         async with httpx.AsyncClient() as session:
             try:
-                response = await session.get(result_url)
+                response = await session.get(result_url, timeout=None)
                 if response.status_code == 200:
                     video_bytes = BytesIO(response.content)
                     video_bytes.seek(0)
@@ -135,7 +133,7 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
                 else:
                     await process_result(video, result_url)
             except Exception as e:
-                print(e)
+                logging.error(f"Error processing video webhook {type(e)} {e}")
                 await process_result(video, result_url)
     video.task_progress = 100
     video.status = VideoStatus.completed
@@ -150,7 +148,6 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
     await video.save_report(report)
 
 
-@try_except_wrapper
 async def meter_cost(video: Video):
     ufaas_client = AsyncUFaaS(
         ufaas_base_url=Settings.UFAAS_BASE_URL,
@@ -165,7 +162,7 @@ async def meter_cost(video: Video):
         variant="video",
     )
     usage = await ufaas_client.saas.usages.create_item(
-        usage_schema.model_dump(mode="json")
+        usage_schema.model_dump(mode="json"), timeout=30
     )
     video.usage_id = usage.uid
     await video.save()
@@ -184,6 +181,7 @@ async def get_quota(user_id: uuid.UUID):
         user_id=user_id,
         asset="coin",
         variant="video",
+        timeout=30,
     )
     return quotas.quota
 
@@ -198,4 +196,12 @@ async def cancel_usage(video: Video):
         usso_base_url=Settings.USSO_BASE_URL,
         api_key=Settings.UFILES_API_KEY,
     )
-    await ufaas_client.saas.usages.cancel_item(video.usage_id)
+    await ufaas_client.saas.usages.cancel_item(video.usage_id, timeout=30)
+
+
+async def check_quota(video: Video):
+    quota = await get_quota(video.user_id)
+    if quota is None or quota < video.engine.price:
+        raise exceptions.InsufficientFunds(
+            f"You have only {quota} coins, while you need {video.engine.price} coins."
+        )

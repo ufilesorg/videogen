@@ -1,3 +1,4 @@
+import uuid
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
@@ -71,7 +72,7 @@ class KlingVideoEngine(Engines):
 
     @property
     def price(self):
-        return 40
+        return 45
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -93,7 +94,7 @@ class KlingVideoProEngine(Engines):
 
     @property
     def price(self):
-        return 100
+        return 150
 
     def validate(self):
         duration = self.meta_data.get("duration", 5)
@@ -110,7 +111,7 @@ class KlingVideoProEngine(Engines):
 
 
 class VideoEngines(str, Enum):
-    # runway = "runway"
+    runway = "runway"
     hailuo = "hailuo"
     kling_v1_video = "kling-v1-video"
     kling_v1_6_pro = "kling-v1-6-pro"
@@ -261,7 +262,7 @@ class VideoSchema(TaskMixin, OwnedEntitySchema):
     meta_data: dict[str, Any] | None = None
     status: VideoStatus = VideoStatus.draft
     results: VideoResponse | None = None
-    usage_id: str | None = None
+    usage_id: uuid.UUID | None = None
 
 
 class VideoWebhookPayload(BaseModel):
