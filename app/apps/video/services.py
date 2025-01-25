@@ -5,6 +5,7 @@ from io import BytesIO
 
 import fal_client
 import httpx
+import ufiles
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoResponse,
@@ -18,8 +19,6 @@ from server.config import Settings
 from ufaas import AsyncUFaaS, exceptions
 from ufaas.apps.saas.schemas import UsageCreateSchema
 from utils import ai
-
-import ufiles
 
 
 async def process_result(video: Video, file_res: str):
