@@ -22,13 +22,19 @@ from utils import ai
 
 
 async def process_result(video: Video, file_res: str):
-    # TODO: Get width and height from the video
-    video.results = VideoResponse(
-        url=file_res,
-        width=22,
-        height=22,
-        duration=5,
-    )
+    ufiles_app = Settings.UFILES_BASE_URL.rstrip("/f")
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{ufiles_app}/apps/ffmpeg/details",
+            headers={"x-api-key": Settings.UFILES_API_KEY},
+            json={"url": file_res},
+            timeout=None,
+        )
+        if response.status_code != 200:
+            data = {"url": file_res, "duration": 5, "width": 512, "height": 512}
+        else:
+            data = response.json()
+    video.results = VideoResponse(**data)
     await video.save()
 
 
