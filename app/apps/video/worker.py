@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime, timedelta
 
+from utils import finance
+
 from .models import Video
 from .schemas import VideoStatus
-from .services import cancel_usage, get_fal_status
+from .services import get_fal_status
 
 
 async def update_video():
@@ -27,4 +29,4 @@ async def update_video():
             logging.error(f"update video failed {type(e)} {e}")
             video.status = VideoStatus.error
             await video.save_report(f"update video failed {type(e)} {e}")
-            await cancel_usage(video)
+            await finance.cancel_usage(video)
