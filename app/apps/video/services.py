@@ -14,11 +14,8 @@ from apps.video.schemas import (
     VideoWebhookPayload,
 )
 from fastapi_mongo_base.tasks import TaskStatusEnum
-from fastapi_mongo_base.utils.basic import try_except_wrapper
 from server.config import Settings
-from ufaas import AsyncUFaaS, exceptions
-from ufaas.apps.saas.schemas import UsageCreateSchema
-from utils import ai
+from utils import ai, finance
 
 
 async def process_result(video: Video, file_res: str):
@@ -67,30 +64,40 @@ async def create_prompt(video: Video, enhance: bool = False):
     return prompt
 
 
-@try_except_wrapper
 async def video_request(video: Video):
-    usage = await meter_cost(video)
-    if usage is None:
-        logging.error(f"Insufficient balance. {video.user_id} {video.engine.value}")
-        await video.fail("Insufficient balance.")
-        return
+    try:
+        usage = await finance.meter_cost(video)
+        if usage is None:
+            logging.error(f"Insufficient balance. {video.user_id} {video.engine.value}")
+            await video.fail("Insufficient balance.")
+            return
 
-    prompt = await create_prompt(video)
-    video.prompt = prompt
-    data = {
-        "prompt": video.prompt,
-        "image_url": video.image_url,
-        **(video.meta_data or {}),
-    }
-    handler = await fal_client.submit_async(
-        video.engine.application_name,
-        webhook_url=video.item_webhook_url,
-        arguments=data,
-    )
-    video.request_id = handler.request_id
-    video.task_status = TaskStatusEnum.processing
-    video.status = VideoStatus.processing
-    await video.save_report(f"{video.engine} has been requested.")
+        prompt = await create_prompt(video)
+        video.prompt = prompt
+        data = {
+            "prompt": video.prompt,
+            "image_url": video.image_url,
+            **(video.meta_data or {}),
+        }
+        handler = await fal_client.submit_async(
+            video.engine.application_name,
+            webhook_url=video.item_webhook_url,
+            arguments=data,
+        )
+        video.request_id = handler.request_id
+        video.task_status = TaskStatusEnum.processing
+        video.status = VideoStatus.processing
+        await video.save_report(f"{video.engine} has been requested.")
+    except Exception as e:
+        import traceback
+
+        traceback_str = "".join(traceback.format_tb(e.__traceback__))
+        logging.error(f"Error updating imagination status: \n{traceback_str}\n{e}")
+
+        video.status = VideoStatus.error
+        video.task_status = VideoStatus.error.task_status
+        await video.fail(f"{type(e)}: {e}")
+        return video
 
 
 async def get_fal_status(video: Video):
@@ -141,73 +148,16 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
             except Exception as e:
                 logging.error(f"Error processing video webhook {type(e)} {e}")
                 await process_result(video, result_url)
-    video.task_progress = 100
-    video.status = VideoStatus.completed
-    video.task_status = TaskStatusEnum.completed
+        video.task_progress = 100
+        video.status = VideoStatus.completed
+        video.task_status = TaskStatusEnum.completed
 
-    report = (
-        f"Fal completed."
-        if data.status == "completed"
-        else f"Fal update. {video.status}"
-    )
-
-    await video.save_report(report)
-
-
-async def meter_cost(video: Video):
-    ufaas_client = AsyncUFaaS(
-        ufaas_base_url=Settings.UFAAS_BASE_URL,
-        usso_base_url=Settings.USSO_BASE_URL,
-        # TODO: Change to UFAAS_API_KEY name
-        api_key=Settings.UFILES_API_KEY,
-    )
-    usage_schema = UsageCreateSchema(
-        user_id=video.user_id,
-        asset="coin",
-        amount=video.engine.price,
-        variant="video",
-    )
-    usage = await ufaas_client.saas.usages.create_item(
-        usage_schema.model_dump(mode="json"), timeout=30
-    )
-    video.usage_id = usage.uid
-    await video.save()
-    return usage
-
-
-@try_except_wrapper
-async def get_quota(user_id: uuid.UUID):
-    ufaas_client = AsyncUFaaS(
-        ufaas_base_url=Settings.UFAAS_BASE_URL,
-        usso_base_url=Settings.USSO_BASE_URL,
-        # TODO: Change to UFAAS_API_KEY name
-        api_key=Settings.UFILES_API_KEY,
-    )
-    quotas = await ufaas_client.saas.enrollments.get_quotas(
-        user_id=user_id,
-        asset="coin",
-        variant="video",
-        timeout=30,
-    )
-    return quotas.quota
-
-
-@try_except_wrapper
-async def cancel_usage(video: Video):
-    if video.usage_id is None:
-        return
-
-    ufaas_client = AsyncUFaaS(
-        ufaas_base_url=Settings.UFAAS_BASE_URL,
-        usso_base_url=Settings.USSO_BASE_URL,
-        api_key=Settings.UFILES_API_KEY,
-    )
-    await ufaas_client.saas.usages.cancel_item(video.usage_id, timeout=30)
-
-
-async def check_quota(video: Video):
-    quota = await get_quota(video.user_id)
-    if quota is None or quota < video.engine.price:
-        raise exceptions.InsufficientFunds(
-            f"You have only {quota} coins, while you need {video.engine.price} coins."
+        report = (
+            f"Fal completed."
+            if data.status == "completed"
+            else f"Fal update. {video.status}"
         )
+
+        await video.save_report(report)
+
+    logging.warning(f"Video webhook {video.uid} {data.status}")

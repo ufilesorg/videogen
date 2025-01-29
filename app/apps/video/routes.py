@@ -9,10 +9,11 @@ from apps.video.schemas import (
     VideoSchema,
     VideoWebhookData,
 )
-from apps.video.services import check_quota, process_video_webhook
+from apps.video.services import process_video_webhook
 from fastapi import BackgroundTasks, Request
 from fastapi_mongo_base.routes import AbstractTaskRouter
 from usso.fastapi import jwt_access_security
+from utils import finance
 
 
 class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
@@ -26,33 +27,7 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         )
 
     def config_routes(self, **kwargs):
-        self.router.add_api_route(
-            "/",
-            self.list_items,
-            methods=["GET"],
-            response_model=self.list_response_schema,
-            status_code=200,
-        )
-        self.router.add_api_route(
-            "/",
-            self.create_item,
-            methods=["POST"],
-            response_model=self.create_response_schema,
-            status_code=201,
-        )
-        self.router.add_api_route(
-            "/{uid:uuid}",
-            self.retrieve_item,
-            methods=["GET"],
-            response_model=self.retrieve_response_schema,
-            status_code=200,
-        )
-        self.router.add_api_route(
-            "/{uid:uuid}",
-            self.delete_item,
-            methods=["DELETE"],
-            response_model=self.delete_response_schema,
-        )
+        super().config_routes(update_routes=False, **kwargs)
         self.router.add_api_route(
             "/{uid:uuid}/webhook",
             self.webhook,
@@ -67,8 +42,8 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         background_tasks: BackgroundTasks,
     ):
         item: Video = await super(AbstractTaskRouter, self).create_item(request, data)
-        await check_quota(item)
-        item.task_status == "init"
+        await finance.check_quota(item)
+        item.task_status = "init"
         background_tasks.add_task(item.start_processing)
         return item
 
