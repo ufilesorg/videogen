@@ -1,11 +1,9 @@
-import json
 import logging
 import uuid
 from io import BytesIO
 
 import fal_client
 import httpx
-import ufiles
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoResponse,
@@ -14,47 +12,13 @@ from apps.video.schemas import (
     VideoWebhookPayload,
 )
 from fastapi_mongo_base.tasks import TaskStatusEnum
-from server.config import Settings
-from utils import ai, finance
+from utils import ai, finance, media, video_attr
 
 
 async def process_result(video: Video, file_res: str):
-    ufiles_app = Settings.UFILES_BASE_URL.rstrip("/f")
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{ufiles_app}/apps/ffmpeg/details",
-            headers={"x-api-key": Settings.UFILES_API_KEY},
-            json={"url": file_res},
-            timeout=None,
-        )
-        if response.status_code != 200:
-            data = {"url": file_res, "duration": 5, "width": 512, "height": 512}
-        else:
-            data = response.json()
+    data = await video_attr.get_attributes(file_res)
     video.results = VideoResponse(**data)
     await video.save()
-
-
-async def upload_ufile(
-    file_bytes: BytesIO,
-    user_id: uuid.UUID,
-    meta_data: dict | None = None,
-    file_upload_dir: str = "videogens",
-):
-    client = ufiles.AsyncUFiles(
-        ufiles_base_url=Settings.UFILES_BASE_URL,
-        usso_base_url=Settings.USSO_BASE_URL,
-        api_key=Settings.UFILES_API_KEY,
-    )
-
-    return await client.upload_bytes(
-        file_bytes,
-        filename=f"{file_upload_dir}/{file_bytes.name}",
-        public_permission=json.dumps({"permission": ufiles.PermissionEnum.READ}),
-        user_id=str(user_id),
-        meta_data=meta_data,
-        timeout=None,
-    )
 
 
 async def create_prompt(video: Video, enhance: bool = False):
@@ -66,7 +30,7 @@ async def create_prompt(video: Video, enhance: bool = False):
 
 async def video_request(video: Video):
     try:
-        usage = await finance.meter_cost(video)
+        usage = await finance.meter_cost(video.user_id, video.engine.price)
         if usage is None:
             logging.error(f"Insufficient balance. {video.user_id} {video.engine.value}")
             await video.fail("Insufficient balance.")
@@ -137,7 +101,7 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
                     video_bytes = BytesIO(response.content)
                     video_bytes.seek(0)
                     video_bytes.name = f"video{str(uuid.uuid4())}.mp4"
-                    file = await upload_ufile(
+                    file = await media.upload_ufile(
                         video_bytes,
                         user_id=str(video.user_id),
                         file_upload_dir="videogens",

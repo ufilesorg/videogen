@@ -42,7 +42,7 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         background_tasks: BackgroundTasks,
     ):
         item: Video = await super(AbstractTaskRouter, self).create_item(request, data)
-        await finance.check_quota(item)
+        await finance.check_quota(item.user_id, item.engine.price)
         item.task_status = "init"
         background_tasks.add_task(item.start_processing)
         return item
