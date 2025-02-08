@@ -26,3 +26,26 @@ async def upload_ufile(
         meta_data=meta_data,
         timeout=None,
     )
+
+
+async def upload_url(
+    url: str,
+    user_id: uuid.UUID,
+    filename: str,
+    meta_data: dict | None = None,
+    file_upload_dir: str = "videogens",
+):
+    client = ufiles.AsyncUFiles(
+        ufiles_base_url=Settings.UFILES_BASE_URL,
+        usso_base_url=Settings.USSO_BASE_URL,
+        api_key=Settings.UFILES_API_KEY,
+    )
+
+    return await client.upload_url(
+        url,
+        filename=f"{file_upload_dir}/{filename}",
+        public_permission=json.dumps({"permission": ufiles.PermissionEnum.READ}),
+        user_id=str(user_id),
+        meta_data=meta_data,
+        timeout=None,
+    )

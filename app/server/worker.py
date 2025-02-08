@@ -12,6 +12,7 @@ logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
 
 async def worker():
+    await update_video()
     scheduler = AsyncIOScheduler()
     scheduler.add_job(update_video, "interval", seconds=Settings.update_time)
 

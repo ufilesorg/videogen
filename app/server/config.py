@@ -16,7 +16,7 @@ class Settings(config.Settings):
 
     base_dir: Path = Path(__file__).resolve().parent.parent
     base_path: str = "/v1/apps/videogen"
-    update_time: int = int(os.getenv("TASK_UPDATE_TIME", 30))
+    update_time: int = int(os.getenv("TASK_UPDATE_TIME", 10))
 
     fal_key: str = os.getenv("FAL_KEY")
     runway_key: str = os.getenv("RUNWAY_KEY")

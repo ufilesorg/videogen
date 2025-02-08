@@ -1,145 +1,13 @@
 import uuid
-from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
 
 import fal_client
 from fastapi_mongo_base.schemas import OwnedEntitySchema
 from fastapi_mongo_base.tasks import TaskMixin, TaskStatusEnum
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
-
-class Engines(ABC):
-    application_name: str
-    thumbnail_url: str
-
-    def __init__(self, meta_data={}):
-        self.meta_data = meta_data
-
-    @property
-    @abstractmethod
-    def price(self):
-        pass
-
-    @abstractmethod
-    def validate(self):
-        pass
-
-
-class RunwayEngine(Engines):
-    application_name = "fal-ai/runway-gen3/turbo/image-to-video"
-    thumbnail_url = "https://media.pixiee.io/v1/f/bdefc333-f9d6-4d48-9f88-62230baa72a6/runway-icon.png"
-
-    @property
-    def price(self):
-        return 75
-
-    def validate(self):
-        duration = self.meta_data.get("duration", 5)
-        ratio = self.meta_data.get("ratio", "16:9")
-        duration_valid = duration in {5, 10}
-        ratio_valid = ratio in {"16:9", "9:16"}
-        if not duration_valid:
-            message = "Duration must be 5 or 10"
-        elif not ratio_valid:
-            message = "Ratio must be 16:9 or 9:16"
-        else:
-            message = None
-        return duration_valid and ratio_valid, message
-
-
-class HailuoEngine(Engines):
-    application_name = "fal-ai/minimax-video/image-to-video"
-    thumbnail_url = "https://media.pixiee.io/v1/f/8f1e0257-e2ad-454d-b81c-9d09a6aa7916/hailuo-icon.png"
-
-    @property
-    def price(self):
-        return 150
-
-    def validate(self):
-        prompt_optimizer = self.meta_data.get("prompt_optimizer", True)
-        prompt_optimizer_valid = isinstance(prompt_optimizer, bool)
-        if not prompt_optimizer_valid:
-            message = "prompt_optimizer must be boolean"
-        else:
-            message = None
-        return prompt_optimizer_valid, message
-
-
-class KlingVideoEngine(Engines):
-    application_name = "fal-ai/kling-video/v1/standard/image-to-video"
-    thumbnail_url = "https://media.pixiee.io/v1/f/abe6c5ae-3d88-4d67-a5a8-d421042522a4/kling-video-icon.png"
-
-    @property
-    def price(self):
-        return 45
-
-    def validate(self):
-        duration = self.meta_data.get("duration", 5)
-        aspect_ratio = self.meta_data.get("aspect_ratio", "16:9")
-        duration_valid = duration in {5, 10}
-        aspect_ratio_valid = aspect_ratio in {"16:9", "9:16", "1:1"}
-        if not duration_valid:
-            message = "Duration must be 5 or 10"
-        elif not aspect_ratio_valid:
-            message = "aspect_ratio must be 16:9 or 9:16 or 1:1"
-        else:
-            message = None
-        return duration_valid and aspect_ratio_valid, message
-
-
-class KlingVideoProEngine(Engines):
-    application_name = "fal-ai/kling-video/v1.6/pro/image-to-video"
-    thumbnail_url = "https://media.pixiee.io/v1/f/abe6c5ae-3d88-4d67-a5a8-d421042522a4/kling-video-icon.png"
-
-    @property
-    def price(self):
-        return 150
-
-    def validate(self):
-        duration = self.meta_data.get("duration", 5)
-        aspect_ratio = self.meta_data.get("aspect_ratio", "16:9")
-        duration_valid = duration in {5, 10}
-        aspect_ratio_valid = aspect_ratio in {"16:9", "9:16", "1:1"}
-        if not duration_valid:
-            message = "Duration must be 5 or 10"
-        elif not aspect_ratio_valid:
-            message = "aspect_ratio must be 16:9 or 9:16 or 1:1"
-        else:
-            message = None
-        return duration_valid and aspect_ratio_valid, message
-
-
-class VideoEngines(str, Enum):
-    runway = "runway"
-    hailuo = "hailuo"
-    kling_v1_video = "kling-v1-video"
-    kling_v1_6_pro = "kling-v1-6-pro"
-
-    def instance(self, meta_data={}):
-        return (
-            {
-                # VideoEngines.runway: RunwayEngine,
-                VideoEngines.hailuo: HailuoEngine,
-                VideoEngines.kling_v1_video: KlingVideoEngine,
-                VideoEngines.kling_v1_6_pro: KlingVideoProEngine,
-            }[self]
-        )(meta_data)
-
-    @property
-    def price(self):
-        return self.instance().price
-
-    @property
-    def application_name(self):
-        return self.instance().application_name
-
-    @property
-    def thumbnail_url(self):
-        return self.instance().thumbnail_url
-
-    def validate(self, meta_data):
-        return self.instance(meta_data).validate()
+from . import engines
 
 
 class VideoStatus(str, Enum):
@@ -152,13 +20,13 @@ class VideoStatus(str, Enum):
     processing = "processing"
     done = "done"
     completed = "completed"
-    error = "ERROR"
-    errorr = "error"
+    # error = "ERROR"
+    error = "error"
     ok = "OK"
     cancelled = "cancelled"
 
     @classmethod
-    def from_fal(cls, status):
+    def from_engine(cls, status):
         return {
             "initialized": VideoStatus.init,
             "queue": VideoStatus.queue,
@@ -167,6 +35,15 @@ class VideoStatus(str, Enum):
             "completed": VideoStatus.completed,
             "ERROR": VideoStatus.error,
             "error": VideoStatus.error,
+            fal_client.Queued: VideoStatus.queue,
+            fal_client.InProgress: VideoStatus.processing,
+            fal_client.Completed: VideoStatus.completed,
+            "SUCCEEDED": VideoStatus.completed,
+            "FAILED": VideoStatus.error,
+            "RUNNING": VideoStatus.processing,
+            "PENDING": VideoStatus.queue,
+            "CANCELLED": VideoStatus.cancelled,
+            "THROTTLED": VideoStatus.error,
         }.get(status, VideoStatus.error)
 
     @classmethod
@@ -175,6 +52,13 @@ class VideoStatus(str, Enum):
             fal_client.Queued: VideoStatus.queue,
             fal_client.InProgress: VideoStatus.processing,
             fal_client.Completed: VideoStatus.completed,
+        }.get(status, VideoStatus.error)
+
+    @classmethod
+    def from_runway(cls, status: str):
+        return {
+            "SUCCEEDED": VideoStatus.completed,
+            "FAILED": VideoStatus.error,
         }.get(status, VideoStatus.error)
 
     @classmethod
@@ -221,26 +105,45 @@ class VideoStatus(str, Enum):
 
 
 class VideoEnginesSchema(BaseModel):
-    engine: VideoEngines = VideoEngines.kling_v1_6_pro
+    engine: str = "runway"
+    text_to_video: bool = True
+    image_to_video: bool = False
     thumbnail_url: str
     price: float
 
     @classmethod
-    def from_model(cls, model: VideoEngines):
-        return cls(engine=model, thumbnail_url=model.thumbnail_url, price=model.price)
+    def from_model(cls, model: str) -> "VideoEnginesSchema":
+        subclass = engines.AbstractEngine.get_subclass(model)
+        return cls(
+            engine=subclass.get_class_name(),
+            thumbnail_url=subclass.thumbnail_url,
+            price=subclass.price,
+            text_to_video=subclass.text_to_video,
+            image_to_video=subclass.image_to_video,
+        )
 
 
 class VideoCreateSchema(BaseModel):
-    prompt: str
-    image_url: str
+    # prompt: str
+    user_prompt: str
+    image_url: str | None = None
     meta_data: dict[str, Any] | None = None
-    engine: VideoEngines
+    engine: str = "runway"
     webhook_url: str | None = None
 
+    @field_validator("engine", mode="before")
+    def validate_engine(cls, v: str):
+        engines.AbstractEngine.get_subclass(v)
+        return v
+
+    @property
+    def engine_instance(self):
+        return engines.AbstractEngine.get_subclass(self.engine)
+
     @model_validator(mode="after")
-    def validate_engine(cls, values: "VideoCreateSchema"):
+    def validate_metadata(cls, values: "VideoCreateSchema"):
         meta_data = values.meta_data or {}
-        engine = values.engine
+        engine = engines.AbstractEngine.get_subclass(values.engine)
         validated, message = engine.validate(meta_data)
         if not validated:
             raise ValueError(f"MetaData: {message}")
@@ -251,15 +154,12 @@ class VideoResponse(BaseModel):
     url: str
     width: int
     height: int
-    duration: int
+    duration: float
 
 
-class VideoSchema(TaskMixin, OwnedEntitySchema):
-    prompt: str = None
+class VideoSchema(VideoCreateSchema, TaskMixin, OwnedEntitySchema):
+    prompt: str | None = None
     request_id: str | None = None
-    image_url: str | None = None
-    engine: VideoEngines
-    meta_data: dict[str, Any] | None = None
     status: VideoStatus = VideoStatus.draft
     results: VideoResponse | None = None
     usage_id: uuid.UUID | None = None

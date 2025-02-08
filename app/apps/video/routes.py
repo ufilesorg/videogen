@@ -4,12 +4,11 @@ import uuid
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoCreateSchema,
-    VideoEngines,
     VideoEnginesSchema,
     VideoSchema,
     VideoWebhookData,
 )
-from apps.video.services import process_video_webhook
+from apps.video.services import process_video_webhook, register_cost
 from fastapi import BackgroundTasks, Request
 from fastapi_mongo_base.routes import AbstractTaskRouter
 from usso.fastapi import jwt_access_security
@@ -42,7 +41,8 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         background_tasks: BackgroundTasks,
     ):
         item: Video = await super(AbstractTaskRouter, self).create_item(request, data)
-        await finance.check_quota(item.user_id, item.engine.price)
+        await finance.check_quota(item.user_id, item.engine_instance.price)
+        await register_cost(item)
         item.task_status = "init"
         background_tasks.add_task(item.start_processing)
         return item
@@ -60,10 +60,14 @@ router = VideoRouter().router
 
 
 @router.get("/engines")
-async def engines():
+async def engines(text_to_video: bool | None = None, image_to_video: bool | None = None):
+    from . import engines
+
     engines = [
-        VideoEnginesSchema.from_model(engine)
-        for engine in VideoEngines
-        if engine != VideoEngines.runway
+        VideoEnginesSchema.from_model(name)
+        for name, engine in engines.AbstractEngine.get_subclasses().items()
+        if "abstract" not in engine.get_class_name()
+        and (text_to_video is None or text_to_video == engine.text_to_video)
+        and (image_to_video is None or image_to_video == engine.image_to_video)
     ]
     return engines

@@ -1,9 +1,5 @@
 import logging
-import uuid
-from io import BytesIO
-
-import fal_client
-import httpx
+from datetime import datetime
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoResponse,
@@ -12,46 +8,49 @@ from apps.video.schemas import (
     VideoWebhookPayload,
 )
 from fastapi_mongo_base.tasks import TaskStatusEnum
+from fastapi_mongo_base.utils import texttools
 from utils import ai, finance, media, video_attr
 
 
-async def process_result(video: Video, file_res: str):
-    data = await video_attr.get_attributes(file_res)
-    video.results = VideoResponse(**data)
-    await video.save()
+async def get_attributes(file_url: str):
+    data = await video_attr.get_attributes(file_url)
+    url = data.pop("url", None) or file_url
+    logging.info(f"get attributes {data}")
+    return VideoResponse(**data, url=url)
 
 
-async def create_prompt(video: Video, enhance: bool = False):
+async def create_prompt(user_prompt: str):
     # Translate prompt using ai
-    prompt = await ai.translate(video.prompt)
+    prompt = await ai.translate(user_prompt)
     prompt = prompt.strip(",").strip()
     return prompt
 
 
 async def video_request(video: Video):
     try:
-        usage = await finance.meter_cost(video.user_id, video.engine.price)
+        usage = await finance.meter_cost(video.user_id, video.engine_instance.price)
         if usage is None:
-            logging.error(f"Insufficient balance. {video.user_id} {video.engine.value}")
+            logging.error(
+                f"Insufficient balance. {video.user_id} {video.engine_instance.get_class_name()}"
+            )
             await video.fail("Insufficient balance.")
             return
 
-        prompt = await create_prompt(video)
+        video.task_start_time = datetime.now()
+        prompt = await create_prompt(video.user_prompt)
         video.prompt = prompt
-        data = {
-            "prompt": video.prompt,
-            "image_url": video.image_url,
-            **(video.meta_data or {}),
-        }
-        handler = await fal_client.submit_async(
-            video.engine.application_name,
+        engine = video.engine_instance
+        video.request_id = await engine.generate_async(
+            video.prompt,
+            image_url=video.image_url,
+            meta_data=video.meta_data,
             webhook_url=video.item_webhook_url,
-            arguments=data,
         )
-        video.request_id = handler.request_id
         video.task_status = TaskStatusEnum.processing
         video.status = VideoStatus.processing
-        await video.save_report(f"{video.engine} has been requested.")
+        await video.save_report(
+            f"{video.engine_instance.get_class_name()} has been requested."
+        )
     except Exception as e:
         import traceback
 
@@ -64,22 +63,19 @@ async def video_request(video: Video):
         return video
 
 
-async def get_fal_status(video: Video):
+async def get_update(video: Video):
     # Get and convert fal status to VideoStatus
-    status = await fal_client.status_async(
-        video.engine.application_name, video.request_id, with_logs=True
-    )
-    video.status = VideoStatus.from_fal_status(type(status))
+    engine = video.engine_instance
+    status = await engine.get_status(video.request_id)
+    video.status = VideoStatus.from_engine(status)
 
     # Check video status
     if video.status.is_done:
         payload: VideoWebhookPayload | None = None
         # Getting the video payload if the status was successful
         if video.status.is_success:
-            results = await fal_client.result_async(
-                video.engine.application_name, video.request_id
-            )
-            payload = VideoWebhookPayload(video=results["video"])
+            results = await engine.get_result(video.request_id)
+            payload = VideoWebhookPayload(video=results.model_dump())
         # Delivery of the results to the web process
         await process_video_webhook(
             video, VideoWebhookData(status=video.status, payload=payload)
@@ -94,34 +90,39 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
 
     if data.status.is_success:
         result_url = data.payload.video.get("url", "")
-        async with httpx.AsyncClient() as session:
-            try:
-                response = await session.get(result_url, timeout=None)
-                if response.status_code == 200:
-                    video_bytes = BytesIO(response.content)
-                    video_bytes.seek(0)
-                    video_bytes.name = f"video{str(uuid.uuid4())}.mp4"
-                    file = await media.upload_ufile(
-                        video_bytes,
-                        user_id=str(video.user_id),
-                        file_upload_dir="videogens",
-                    )
-                    await process_result(video, file.url)
-                else:
-                    await process_result(video, result_url)
-            except Exception as e:
-                logging.error(f"Error processing video webhook {type(e)} {e}")
-                await process_result(video, result_url)
+        filename = texttools.sanitize_filename(video.prompt)
+        file = await media.upload_url(
+            result_url,
+            str(video.user_id),
+            f"video-{filename}.mp4",
+            file_upload_dir="videogens",
+        )
+        attributes = await get_attributes(file.url)
+        video.results = attributes
         video.task_progress = 100
         video.status = VideoStatus.completed
         video.task_status = TaskStatusEnum.completed
+        video.task_end_time = datetime.now()
 
         report = (
-            f"Fal completed."
+            f"Video task completed."
             if data.status == "completed"
-            else f"Fal update. {video.status}"
+            else f"Video task update. {video.status}"
         )
 
         await video.save_report(report)
 
-    logging.warning(f"Video webhook {video.uid} {data.status}")
+    logging.info(f"Video webhook {video.uid} {data.status}")
+
+
+async def register_cost(video: Video):
+    usage = await finance.meter_cost(video.user_id, video.engine_instance.price)
+    if usage is None:
+        logging.error(
+            f"Insufficient balance. {video.user_id} {video.engine_instance.get_class_name()}"
+        )
+        await video.fail("Insufficient balance.")
+        return
+
+    video.usage_id = usage.uid
+    return video
