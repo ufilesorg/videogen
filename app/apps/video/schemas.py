@@ -20,9 +20,7 @@ class VideoStatus(str, Enum):
     processing = "processing"
     done = "done"
     completed = "completed"
-    # error = "ERROR"
     error = "error"
-    ok = "OK"
     cancelled = "cancelled"
 
     @classmethod
@@ -125,7 +123,7 @@ class VideoEnginesSchema(BaseModel):
 
 class VideoCreateSchema(BaseModel):
     # prompt: str
-    user_prompt: str
+    user_prompt: str | None = None
     image_url: str | None = None
     meta_data: dict[str, Any] | None = None
     engine: str = "runway"
@@ -134,6 +132,12 @@ class VideoCreateSchema(BaseModel):
     @field_validator("engine", mode="before")
     def validate_engine(cls, v: str):
         engines.AbstractEngine.get_subclass(v)
+        return v
+
+    @field_validator("user_prompt", mode="before")
+    def validate_user_prompt(cls, v: str):
+        if v is None:
+            raise ValueError("User prompt is required")
         return v
 
     @property
@@ -163,6 +167,16 @@ class VideoSchema(VideoCreateSchema, TaskMixin, OwnedEntitySchema):
     status: VideoStatus = VideoStatus.draft
     results: VideoResponse | None = None
     usage_id: uuid.UUID | None = None
+
+    @field_validator("user_prompt", mode="before")
+    def validate_user_prompt(cls, v: str):
+        if v is None:
+            return None
+        return v
+
+    @field_validator("engine", mode="before")
+    def validate_engine(cls, v: str):
+        return v
 
 
 class VideoWebhookPayload(BaseModel):

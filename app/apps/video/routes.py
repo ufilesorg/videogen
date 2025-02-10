@@ -1,18 +1,20 @@
 import logging
 import uuid
-
+from datetime import datetime
 from apps.video.models import Video
 from apps.video.schemas import (
     VideoCreateSchema,
     VideoEnginesSchema,
     VideoSchema,
     VideoWebhookData,
+    VideoStatus,
 )
 from apps.video.services import process_video_webhook, register_cost
-from fastapi import BackgroundTasks, Request
+from fastapi import BackgroundTasks, Request, Query
 from fastapi_mongo_base.routes import AbstractTaskRouter
 from usso.fastapi import jwt_access_security
 from utils import finance
+from server.config import Settings
 
 
 class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
@@ -34,6 +36,15 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
             status_code=200,
         )
 
+    async def statistics(
+        self,
+        request: Request,
+        created_at_from: datetime | None = None,
+        created_at_to: datetime | None = None,
+        status: VideoStatus | None = None,
+    ):
+        return await super().statistics(request)
+    
     async def create_item(
         self,
         request: Request,
