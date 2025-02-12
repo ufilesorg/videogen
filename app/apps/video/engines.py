@@ -117,7 +117,7 @@ class AbstractFalEngine(AbstractEngine):
         status = await fal_client.status_async(
             self.application_name, request_id, with_logs=True
         )
-        return status
+        return status.__class__.__name__.lower()
 
     async def get_result(self, request_id: str):
         import fal_client
