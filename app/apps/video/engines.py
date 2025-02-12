@@ -34,7 +34,10 @@ class AbstractEngine(metaclass=Singleton):
     def get_subclass(cls, name: str) -> "AbstractEngine":
         subclasses = cls.get_subclasses()
         if name.lower().replace("engine", "").replace("video", "") not in subclasses:
-            raise ValueError(f"Subclass with application name {name} not found")
+            import logging
+            logging.error(f"Subclass with application name {name} not found")
+            return name
+            # raise ValueError(f"Subclass with application name {name} not found")
         return subclasses.get(name.lower().replace("engine", "").replace("video", ""))
 
     @property
