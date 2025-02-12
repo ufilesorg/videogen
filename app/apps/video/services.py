@@ -28,14 +28,6 @@ async def create_prompt(user_prompt: str):
 
 async def video_request(video: Video):
     try:
-        usage = await finance.meter_cost(video.user_id, video.engine_instance.price)
-        if usage is None:
-            logging.error(
-                f"Insufficient balance. {video.user_id} {video.engine_instance.get_class_name()}"
-            )
-            await video.fail("Insufficient balance.")
-            return
-
         video.task_start_time = datetime.now()
         prompt = await create_prompt(video.user_prompt)
         video.prompt = prompt

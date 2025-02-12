@@ -55,6 +55,7 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         await finance.check_quota(item.user_id, item.engine_instance.price)
         await register_cost(item)
         item.task_status = "init"
+        await item.save()
         background_tasks.add_task(item.start_processing)
         return item
 
