@@ -36,7 +36,7 @@ class AbstractEngine(metaclass=Singleton):
         if name.lower().replace("engine", "").replace("video", "") not in subclasses:
             import logging
             logging.error(f"Subclass with application name {name} not found")
-            return name
+            return None
             # raise ValueError(f"Subclass with application name {name} not found")
         return subclasses.get(name.lower().replace("engine", "").replace("video", ""))
 
