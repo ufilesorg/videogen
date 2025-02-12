@@ -147,11 +147,12 @@ class AbstractMinimaxEngine(AbstractFalEngine):
         return prompt_optimizer_valid, message
 
 
-class MinimaxEngine(AbstractMinimaxEngine, AbstractImageToVideoEngine):
-    application_name = "fal-ai/minimax-video/image-to-video"
+class HailouEngine(AbstractMinimaxEngine, AbstractImageToVideoEngine):
+    application_name = "fal-ai/minimax/video-01/image-to-video"
+    # application_name = "fal-ai/minimax-video/image-to-video"
 
 
-class MinimaxTextEngine(AbstractMinimaxEngine, AbstractTextToVideoEngine):
+class HailouTextEngine(AbstractMinimaxEngine, AbstractTextToVideoEngine):
     application_name = "fal-ai/minimax/video-01"
 
 
