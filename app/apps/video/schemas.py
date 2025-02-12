@@ -32,6 +32,8 @@ class VideoStatus(str, Enum):
             "running": VideoStatus.processing,
             "completed": VideoStatus.completed,
             "ERROR": VideoStatus.error,
+            "OK": VideoStatus.completed,
+            "ok": VideoStatus.completed,
             "error": VideoStatus.error,
             "queued": VideoStatus.queue,
             "inprogress": VideoStatus.processing,
@@ -42,21 +44,6 @@ class VideoStatus(str, Enum):
             "PENDING": VideoStatus.queue,
             "CANCELLED": VideoStatus.cancelled,
             "THROTTLED": VideoStatus.error,
-        }.get(status, VideoStatus.error)
-
-    @classmethod
-    def from_fal_status(cls, status):
-        return {
-            fal_client.Queued: VideoStatus.queue,
-            fal_client.InProgress: VideoStatus.processing,
-            fal_client.Completed: VideoStatus.completed,
-        }.get(status, VideoStatus.error)
-
-    @classmethod
-    def from_runway(cls, status: str):
-        return {
-            "SUCCEEDED": VideoStatus.completed,
-            "FAILED": VideoStatus.error,
         }.get(status, VideoStatus.error)
 
     @classmethod

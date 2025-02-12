@@ -38,6 +38,7 @@ async def video_request(video: Video):
             meta_data=video.meta_data,
             webhook_url=video.item_webhook_url,
         )
+        video.task_progress = 5
         video.task_status = TaskStatusEnum.processing
         video.status = VideoStatus.processing
         await video.save_report(

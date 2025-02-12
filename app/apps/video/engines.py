@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from fastapi_mongo_base.utils import basic
@@ -126,11 +127,13 @@ class AbstractFalEngine(AbstractEngine):
     async def get_result(self, request_id: str):
         import fal_client
 
-        result = await fal_client.result_async(self.application_name, request_id)
+        result, status = await asyncio.gather(
+            fal_client.result_async(self.application_name, request_id),
+            self.get_status(request_id),
+        )
 
         url = result.get("video", {}).get("url")
         error = result.get("error")
-        status = result.get("status")
         return VideoTaskSchema(url=url, error=error, status=status)
 
 

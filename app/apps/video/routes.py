@@ -44,7 +44,7 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         status: VideoStatus | None = None,
     ):
         return await super().statistics(request)
-    
+
     async def create_item(
         self,
         request: Request,
@@ -54,6 +54,7 @@ class VideoRouter(AbstractTaskRouter[Video, VideoSchema]):
         item: Video = await super(AbstractTaskRouter, self).create_item(request, data)
         await finance.check_quota(item.user_id, item.engine_instance.price)
         await register_cost(item)
+        item.status = VideoStatus.init
         item.task_status = "init"
         await item.save()
         background_tasks.add_task(item.start_processing)
