@@ -147,6 +147,8 @@ class VideoCreateSchema(BaseModel):
     def validate_metadata(cls, values: "VideoCreateSchema"):
         meta_data = values.meta_data or {}
         engine = engines.AbstractEngine.get_subclass(values.engine)
+        if engine is None:
+            return values
         validated, message = engine.validate(meta_data)
         if not validated:
             raise ValueError(f"MetaData: {message}")
