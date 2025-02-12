@@ -35,6 +35,7 @@ class AbstractEngine(metaclass=Singleton):
         subclasses = cls.get_subclasses()
         if name.lower().replace("engine", "").replace("video", "") not in subclasses:
             import logging
+
             logging.error(f"Subclass with application name {name} not found")
             return None
             # raise ValueError(f"Subclass with application name {name} not found")
@@ -160,7 +161,6 @@ class MinimaxEngine(HailouEngine):
 
 class HailouTextEngine(AbstractMinimaxEngine, AbstractTextToVideoEngine):
     application_name = "fal-ai/minimax/video-01"
-class MinimaxEngine(HailouEngine):
 
 
 class AbstractKlingEngine(AbstractFalEngine):
@@ -309,6 +309,4 @@ class RunwayEngine(AbstractImageToVideoEngine):
             url = task.output[0]
         else:
             url = None
-        return VideoTaskSchema(
-            url=url, error=task.failure, status=task.status
-        )
+        return VideoTaskSchema(url=url, error=task.failure, status=task.status)
