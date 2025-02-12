@@ -66,7 +66,6 @@ class VideoStatus(str, Enum):
             for status in [
                 VideoStatus.done,
                 VideoStatus.completed,
-                VideoStatus.ok,
                 VideoStatus.cancelled,
                 VideoStatus.error,
             ]
