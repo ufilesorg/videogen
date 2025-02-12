@@ -152,11 +152,15 @@ class AbstractMinimaxEngine(AbstractFalEngine):
 
 class HailouEngine(AbstractMinimaxEngine, AbstractImageToVideoEngine):
     application_name = "fal-ai/minimax/video-01/image-to-video"
-    # application_name = "fal-ai/minimax-video/image-to-video"
+
+
+class MinimaxEngine(HailouEngine):
+    pass
 
 
 class HailouTextEngine(AbstractMinimaxEngine, AbstractTextToVideoEngine):
     application_name = "fal-ai/minimax/video-01"
+class MinimaxEngine(HailouEngine):
 
 
 class AbstractKlingEngine(AbstractFalEngine):

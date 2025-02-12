@@ -83,7 +83,6 @@ class VideoStatus(str, Enum):
             VideoStatus.processing: TaskStatusEnum.processing,
             VideoStatus.done: TaskStatusEnum.completed,
             VideoStatus.completed: TaskStatusEnum.completed,
-            VideoStatus.ok: TaskStatusEnum.completed,
             VideoStatus.error: TaskStatusEnum.error,
             VideoStatus.cancelled: TaskStatusEnum.completed,
         }[self]
@@ -93,7 +92,6 @@ class VideoStatus(str, Enum):
         return self in (
             VideoStatus.done,
             VideoStatus.completed,
-            VideoStatus.ok,
         )
 
     @property
@@ -141,7 +139,10 @@ class VideoCreateSchema(BaseModel):
 
     @property
     def engine_instance(self):
-        return engines.AbstractEngine.get_subclass(self.engine)
+        engine = engines.AbstractEngine.get_subclass(self.engine)
+        if engine is None:
+            return None
+        return engine
 
     @model_validator(mode="after")
     def validate_metadata(cls, values: "VideoCreateSchema"):

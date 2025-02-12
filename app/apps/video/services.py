@@ -66,6 +66,9 @@ async def video_request(video: Video):
 async def get_update(video: Video):
     # Get and convert fal status to VideoStatus
     engine = video.engine_instance
+    if engine is None:
+        logging.error(f"Engine {video.engine} not found")
+        return
     status = await engine.get_status(video.request_id)
     video.status = VideoStatus.from_engine(status)
 
