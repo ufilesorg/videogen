@@ -174,5 +174,5 @@ class VideoWebhookPayload(BaseModel):
 
 class VideoWebhookData(BaseModel):
     payload: VideoWebhookPayload | None = None
-    status: VideoStatus
+    status: VideoStatus = VideoStatus.processing
     error: Any | None = None
