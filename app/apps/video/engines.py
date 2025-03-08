@@ -70,7 +70,7 @@ class AbstractEngine(metaclass=Singleton):
 class AbstractImageToVideoEngine(AbstractEngine):
     application_name: str
     thumbnail_url: str
-    text_to_video: bool = False
+    text_to_video: bool = True
     image_to_video: bool = True
 
 
@@ -313,3 +313,94 @@ class RunwayEngine(AbstractImageToVideoEngine):
         else:
             url = None
         return VideoTaskSchema(url=url, error=task.failure, status=task.status)
+
+
+class AbstractReplicateEngine(AbstractEngine):
+    @property
+    def price(self):
+        return 75
+
+    async def generate_async(
+        self,
+        prompt: str,
+        *,
+        image_url: str = None,
+        meta_data: dict = None,
+        webhook_url: str = None,
+        **kwargs,
+    ):
+        import replicate
+
+        meta_data = meta_data or {}
+        self.validate(meta_data)
+
+        data = (
+            {
+                "prompt": prompt,
+                **meta_data,
+            }
+            | {"start_image_url": image_url}
+            if image_url
+            else {}
+        )
+        handler = replicate.predictions.create(
+            model=self.application_name,
+            input=data,
+            webhook=webhook_url,
+        )
+        return handler.id
+
+    async def get_status(self, request_id: str):
+        import replicate
+
+        status = await replicate.predictions.async_get(request_id)
+        return status.status
+
+    async def get_result(self, request_id: str):
+        import replicate
+
+        result, status = await replicate.predictions.async_get(request_id)
+
+        url = result.get("video", {}).get("url")
+        error = result.get("error")
+        return VideoTaskSchema(url=url, error=error, status=status)
+
+
+class LumaEngine(AbstractReplicateEngine, AbstractTextToVideoEngine):
+    application_name = "luma/ray-2-720p"
+
+    @property
+    def price(self):
+        return 240
+
+
+class LumaEngine(AbstractReplicateEngine, AbstractTextToVideoEngine):
+    application_name = "luma/ray-2-720p"
+    thumbnail_url = (
+        "https://media.pixiee.io/v1/f/4701330c-aa98-4d86-91d4-982ff94d30f3/photon.png"
+    )
+
+    def validate(self, meta_data: dict):
+        duration = meta_data.get("duration", 5)
+        duration_valid = duration in {5, 6, 7, 8, 9}
+        aspect_ratio = meta_data.get("aspect_ratio", "16:9")
+        aspect_ratio_valid = aspect_ratio in {
+            "21:9",
+            "9:21",
+            "16:9",
+            "9:16",
+            "3:4",
+            "4:3",
+            "1:1",
+        }
+        if not duration_valid:
+            message = "Duration must be 5, 6, 7, 8, 9"
+        elif not aspect_ratio_valid:
+            message = "Aspect ratio must be 21:9, 9:21, 16:9, 9:16, 3:4, 4:3 or 1:1"
+        else:
+            message = None
+        return duration_valid and aspect_ratio_valid, message
+
+    @property
+    def price(self):
+        return 240
