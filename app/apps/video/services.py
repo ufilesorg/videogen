@@ -28,7 +28,7 @@ async def create_prompt(user_prompt: str):
 
 async def video_request(video: Video):
     try:
-        video.task_start_time = datetime.now()
+        video.task_start_at = datetime.now()
         prompt = await create_prompt(video.user_prompt)
         video.prompt = prompt
         engine = video.engine_instance
@@ -98,7 +98,7 @@ async def process_video_webhook(video: Video, data: VideoWebhookData):
         video.task_progress = 100
         video.status = VideoStatus.completed
         video.task_status = TaskStatusEnum.completed
-        video.task_end_time = datetime.now()
+        video.task_end_at = datetime.now()
 
         report = (
             f"Video task completed."
